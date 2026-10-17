@@ -58,3 +58,4 @@ Tipos válidos: `CERT`, `EQUIV`, `MESA`, `RECLAMO`, `BAJA`.
 
 - FastAPI
 - SQLite
+ 
