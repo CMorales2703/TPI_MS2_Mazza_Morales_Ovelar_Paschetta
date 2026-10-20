@@ -1,29 +1,6 @@
 from fastapi.testclient import TestClient
 
 
-def test_crear_estudiante_email_null(client):
-    """Caso 10: email nulo provoca un error 500."""
-    datos = {
-        "nombre": "Pedro",
-        "apellido": "Perez",
-        "legajo": "TEST-9010",
-        "email": None,
-    }
-
-    cantidad_antes = cantidad_estudiantes(client)
-
-    with TestClient(
-        client.app, raise_server_exceptions=False
-    ) as cliente_sin_excepciones:
-        respuesta = cliente_sin_excepciones.post("/estudiantes", json=datos)
-
-    # Actual: 500. Esperado tras corregir el defecto: 422.
-    assert respuesta.status_code == 500
-
-    cantidad_despues = cantidad_estudiantes(client)
-    assert cantidad_despues == cantidad_antes
-
-
 def buscar_estudiante(client, estudiante_id):
     """Busca un estudiante por su ID y devuelve el registro completo."""
     respuesta = client.get("/estudiantes")
@@ -94,6 +71,73 @@ def test_crear_estudiante_sin_apellido(client):
     # Actual: 200. Esperado según el diagnóstico: 422.
     assert respuesta.status_code == 200
     assert respuesta.json() == {"error": "falta apellido"}
+
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes
+
+
+def test_crear_estudiante_acepta_email_invalido(client):
+    """Caso 4: acepta un email inválido (hallazgos 4 y 5)."""
+    datos = {
+        "nombre": "Laura",
+        "apellido": "Gomez",
+        "legajo": "TEST-9004",
+        "email": "@",
+    }
+
+    respuesta = client.post("/estudiantes", json=datos)
+
+    # Actual: 200 y lo crea. Esperado: 422 y no lo crea.
+    assert respuesta.status_code == 200
+
+    resultado = respuesta.json()
+    guardado = buscar_estudiante(client, resultado["id"])
+
+    assert guardado is not None
+    assert guardado["email"] == datos["email"]
+    assert guardado == resultado
+
+
+def test_crear_estudiante_acepta_apellido_nulo(client):
+    """Caso 6: acepta un apellido nulo (hallazgos 5 y 11)."""
+    datos = {
+        "nombre": "Martin",
+        "apellido": None,
+        "legajo": "TEST-9006",
+        "email": "martin@test.com",
+    }
+
+    respuesta = client.post("/estudiantes", json=datos)
+
+    # Actual: 200 y lo crea. Esperado: 422 y no lo crea.
+    assert respuesta.status_code == 200
+
+    resultado = respuesta.json()
+    guardado = buscar_estudiante(client, resultado["id"])
+
+    assert guardado is not None
+    assert guardado["apellido"] == datos["apellido"]
+    assert guardado == resultado
+
+
+def test_crear_estudiante_email_null(client):
+    """Caso 10: email nulo provoca un error 500 (hallazgos 3, 4 y 5)."""
+    datos = {
+        "nombre": "Pedro",
+        "apellido": "Perez",
+        "legajo": "TEST-9010",
+        "email": None,
+    }
+
+    cantidad_antes = cantidad_estudiantes(client)
+
+    with TestClient(
+        client.app, raise_server_exceptions=False
+    ) as cliente_sin_excepciones:
+        respuesta = cliente_sin_excepciones.post("/estudiantes", json=datos)
+
+    # Actual: 500. Esperado tras corregir el defecto: 422.
+    assert respuesta.status_code == 500
 
     cantidad_despues = cantidad_estudiantes(client)
     assert cantidad_despues == cantidad_antes
