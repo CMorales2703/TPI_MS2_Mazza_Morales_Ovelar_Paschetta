@@ -1,3 +1,29 @@
+from fastapi.testclient import TestClient
+
+
+def test_crear_estudiante_email_null(client):
+    """Caso 10: email nulo provoca un error 500."""
+    datos = {
+        "nombre": "Pedro",
+        "apellido": "Perez",
+        "legajo": "TEST-9010",
+        "email": None,
+    }
+
+    cantidad_antes = cantidad_estudiantes(client)
+
+    with TestClient(
+        client.app, raise_server_exceptions=False
+    ) as cliente_sin_excepciones:
+        respuesta = cliente_sin_excepciones.post("/estudiantes", json=datos)
+
+    # Actual: 500. Esperado tras corregir el defecto: 422.
+    assert respuesta.status_code == 500
+
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes
+
+
 def buscar_estudiante(client, estudiante_id):
     """Busca un estudiante por su ID y devuelve el registro completo."""
     respuesta = client.get("/estudiantes")
