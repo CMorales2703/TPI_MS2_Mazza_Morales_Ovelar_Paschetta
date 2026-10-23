@@ -10,7 +10,7 @@ Trabajo Práctico Integrador — Metodología de Sistemas II — Tecnicatura Uni
 
 | Integrante | Usuario de GitHub |
 |---|---|
-| Mazza | |
+| Maza | [@BrunoDMaza](https://github.com/BrunoDMaza) |
 | Cristian Morales | [@CMorales2703](https://github.com/CMorales2703) |
 | Ovelar | |
 | Paschetta | |
