@@ -141,3 +141,70 @@ def test_crear_estudiante_email_null(client):
 
     cantidad_despues = cantidad_estudiantes(client)
     assert cantidad_despues == cantidad_antes
+
+
+def test_crear_estudiante_con_legajo_repetido_devuelve_error(client):
+    """Caso 3: detecta legajo repetido, pero responde con HTTP 200 (hallazgo 3)."""
+    datos = {
+        "nombre": "Juan",
+        "apellido": "Perez",
+        "legajo": "TEST-9011",
+        "email": "juan.perez@test.com",
+        "carrera": "Sistemas",
+    }
+
+    # Primero creamos el estudiante que provocará el duplicado.
+    primera_respuesta = client.post("/estudiantes", json=datos)
+    assert primera_respuesta.status_code == 200
+    assert "error" not in primera_respuesta.json()
+
+    # La cantidad se mide después del primer registro.
+    cantidad_antes = cantidad_estudiantes(client)
+
+    # Intentamos registrar nuevamente el mismo legajo.
+    respuesta = client.post("/estudiantes", json=datos)
+
+    # Actual: 200. Esperado: 409 Conflict.
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"error": "legajo repetido"}
+
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes
+
+
+def test_crear_estudiante_acepta_legajo_nulo_repetido(client):
+    """Caso 11: acepta dos estudiantes con legajo nulo (hallazgos 5 y 11)."""
+    datos = {
+        "nombre": "Juan",
+        "apellido": "Perez",
+        "legajo": None,
+        "email": "juan.test11@test.com",
+        "carrera": "Sistemas",
+    }
+
+    cantidad_antes = cantidad_estudiantes(client)
+
+    primera_respuesta = client.post("/estudiantes", json=datos)
+    segunda_respuesta = client.post("/estudiantes", json=datos)
+
+    # Actual: 200 en los dos y crea ambos.
+    # Esperado: 422 en los dos, porque el legajo es obligatorio.
+    assert primera_respuesta.status_code == 200
+    assert segunda_respuesta.status_code == 200
+
+    # El control de duplicados no lo detecta: WHERE legajo = NULL nunca
+    # da verdadero en SQL, y la tabla no tiene UNIQUE ni NOT NULL.
+    primero = primera_respuesta.json()
+    segundo = segunda_respuesta.json()
+
+    # Son dos registros distintos, no el mismo devuelto dos veces.
+    assert primero["id"] != segundo["id"]
+
+    for resultado in (primero, segundo):
+        guardado = buscar_estudiante(client, resultado["id"])
+        assert guardado is not None
+        assert guardado["legajo"] is None
+        assert guardado == resultado
+
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes + 2
