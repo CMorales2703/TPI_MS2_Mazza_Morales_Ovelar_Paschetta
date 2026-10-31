@@ -5,7 +5,7 @@
 **Herramientas:** pytest + `TestClient` de FastAPI
 **Archivos:** `tests/conftest.py`, `tests/test_estudiantes.py`, `tests/test_responsables.py`, `pytest.ini`
 **Cómo se ejecuta:** `.\run.bat test`
-**Resultado:** 11 tests, 11 en verde
+**Resultado:** 13 tests, 13 en verde
 
 ## Objetivo
 
@@ -50,25 +50,22 @@ Además del código HTTP y la respuesta, cada test comprueba el efecto en la bas
 | 2 | `test_crear_estudiante_sin_apellido` | 200 con error, no lo crea | 422 | 3 |
 | 3 | `test_crear_estudiante_con_legajo_repetido_devuelve_error` | 200 con error, no lo crea | 409 | 3 |
 | 4 | `test_crear_estudiante_acepta_email_invalido` | 200, lo crea con `"@"` | 422 | 4, 5 |
+| 5 | `test_crear_estudiante_nombre_nulo` | 200 con error, no lo crea | 422 | 3 |
 | 6 | `test_crear_estudiante_acepta_apellido_nulo` | 200, lo crea con `null` | 422 | 5, 11 |
 | 7 | `test_crear_responsable_area_invalida` | 200 con error, no lo crea | 422 | 3, 6 |
 | 8a | `test_crear_responsable_valido` | 200, lo crea activo | 201 | — |
 | 8b | `test_crear_responsable_acepta_duplicado` | 200, crea un duplicado | 409 | 11 |
 | 10 | `test_crear_estudiante_email_null` | 500 (`TypeError`), no lo crea | 422 | 3, 4, 5 |
 | 11a/11b | `test_crear_estudiante_acepta_legajo_nulo_repetido` | 200, crea dos registros con legajo `null` | 422 | 5, 11 |
+| 12 | `test_crear_estudiante_body_lista_responde_otro_formato` | 422 con formato `detail`, no lo crea | 422 con formato `error` | 3, 5 |
 
 Los casos 9a y 9b (listados) no tienen un test propio: los usan todos los tests para verificar lo guardado, con las funciones `buscar_estudiante`, `cantidad_estudiantes`, `buscar_responsable` y `cantidad_responsables`.
-
-### Casos sin test todavía
-
-| Caso | Qué falta |
-|---|---|
-| 5 | Nombre nulo: 200 con error, no lo crea. Esperado: 422 |
-| 12 | Body que no es un objeto: 422 con formato `detail`. Esperado: 422 con el mismo formato que el resto de los errores |
 
 ## Detalles técnicos
 
 - **Caso 10:** por defecto, `TestClient` relanza al test la excepción no controlada de la app, en lugar de devolver el 500. Para observar el 500 se crea un cliente con `raise_server_exceptions=False` a partir de `client.app`, solo en ese test, para no ocultar errores inesperados en el resto.
 - **Caso 11:** el control de legajo repetido no detecta legajos nulos, porque `WHERE legajo = NULL` nunca da verdadero en SQL y la tabla no tiene `UNIQUE` ni `NOT NULL`. El caso 3 muestra que el control sí funciona con un legajo normal.
+- **Caso 5 frente al caso 6:** `nombre: null` se rechaza porque la línea 61 verifica `is None`; `apellido: null` se acepta porque la línea 63 no lo hace. El test del caso 5 manda el campo con `null` (no lo omite) para pasar por esa condición.
+- **Caso 12:** el test verifica las claves de la respuesta (`detail` presente, `error` ausente) y no el texto del mensaje, que lo genera Pydantic y puede cambiar con la versión de la librería. También verifica que no se guarde nada: hoy FastAPI rechaza el body antes de llegar a `crear_estudiante`, pero eso puede cambiar en la Fase 3 al agregar un modelo de entrada.
 - **Casos 4 y 6 separados:** no se agrupan con `parametrize` porque son defectos distintos. Si en la Fase 3 se corrige uno y no el otro, cada test tiene que poder cambiar por separado.
 - **Warning de dependencias:** `StarletteDeprecationWarning` sobre `httpx` viene de las versiones de las librerías, no del código del sistema. No afecta los resultados.

@@ -98,6 +98,27 @@ def test_crear_estudiante_acepta_email_invalido(client):
     assert guardado == resultado
 
 
+def test_crear_estudiante_nombre_nulo(client):
+    """Caso 5: rechaza un nombre nulo, pero con HTTP 200 (hallazgo 3)."""
+    datos = {
+        "nombre": None,
+        "apellido": "Perez",
+        "legajo": "TEST-9005",
+        "email": "pedro@test.com",
+    }
+
+    cantidad_antes = cantidad_estudiantes(client)
+
+    respuesta = client.post("/estudiantes", json=datos)
+
+    # Actual: 200. Esperado según el diagnóstico: 422.
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"error": "falta nombre"}
+
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes
+
+
 def test_crear_estudiante_acepta_apellido_nulo(client):
     """Caso 6: acepta un apellido nulo (hallazgos 5 y 11)."""
     datos = {
@@ -208,3 +229,22 @@ def test_crear_estudiante_acepta_legajo_nulo_repetido(client):
 
     cantidad_despues = cantidad_estudiantes(client)
     assert cantidad_despues == cantidad_antes + 2
+
+
+def test_crear_estudiante_body_lista_responde_otro_formato(client):
+    """Caso 12: body como lista, 422 con formato "detail" en vez de "error" (hallazgos 3 y 5)."""
+    # Actual: responde 422 con "detail" (formato de FastAPI).
+    # Esperado: responde 422 manteniendo el formato "error" de la API.
+
+    cantidad_antes = cantidad_estudiantes(client)
+
+    respuesta = client.post("/estudiantes", json=[1, 2])
+
+    assert respuesta.status_code == 422
+    assert "detail" in respuesta.json()
+    assert "error" not in respuesta.json()
+
+    # Hoy FastAPI rechaza el body antes de llegar a crear_estudiante.
+    # Se verifica igual por si cambia la validación en la Fase 3.
+    cantidad_despues = cantidad_estudiantes(client)
+    assert cantidad_despues == cantidad_antes
