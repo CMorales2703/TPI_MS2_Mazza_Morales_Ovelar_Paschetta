@@ -8,6 +8,7 @@
 |---|---|---|---|---|
 | Cristian Morales | Claude (Anthropic) | **Preparación:** resumen de la consigna, generación del sistema base, configuración del repositorio (README, scripts de arranque, plantilla de PR) y plan de trabajo del equipo | **Alto.** El sistema base y los archivos de configuración fueron generados por la IA. Las decisiones fueron del grupo: elegimos el stack y el dominio, la organización con ramas `main`/`dev`, la protección de ramas y el reparto de tareas | `anexo/ia/cristian_claude_01_preparacion.pdf` |
 | Cristian Morales | Claude (Anthropic) | **Diagnóstico:** revisión del análisis inicial, guía para ejecutar los casos y armado de los documentos | **Medio.** La IA revisó el análisis, propuso los casos de prueba y armó los documentos. Yo ejecuté y capturé los casos, evalué cada resultado, redacté el análisis de la ficha (impacto, riesgo, prioridad y principio) y lo corregí a partir de la revisión | `anexo/ia/cristian_claude_02_diagnostico.pdf` |
+| Cristian Morales | Claude (Anthropic) | **Pruebas (Fase 2):** guía para aislar la base de datos, revisión de los tests y generación de parte de ellos | **Medio.** Yo escribí el `conftest.py` y los tests de estudiantes (casos 1 a 6, 10, 11 y 12) y los corregí a partir de la revisión de la IA. Decidí el criterio de línea de base. La IA generó los tests de responsables (casos 7, 8a y 8b), aplicó los últimos ajustes del caso 11 y redactó el documento de resultados | `anexo/ia/cristian_claude_03_pruebas.pdf` |
 
 ## Detalle
 
@@ -16,3 +17,5 @@ Usé Claude (Anthropic) para preparar el trabajo: resumir la consigna, generar e
 Para el diagnóstico de mi parte (líneas 1–111), lo revisé con Claude, que detectó errores de clasificación y casos que faltaban. Después ejecuté y capturé los 12 casos de prueba, evalué cada resultado según el criterio de códigos HTTP y redacté el análisis de cada hallazgo de la ficha. Las capturas y los documentos fueron organizados con asistencia de la IA.
 
 Verificar el análisis ejecutando el sistema me permitió confirmar un defecto real (error 500 con `email: null`) que el análisis inicial solo había anticipado, y corregir la clasificación de varios smells.
+
+Para las pruebas de mi parte, Claude me guió para aislar la base de datos sin modificar `main.py` y revisó cada test. Escribí el `conftest.py` y los tests de estudiantes, y los corregí a partir de esa revisión. El criterio de línea de base (verificar el comportamiento actual y dejar el esperado en un comentario) lo decidí yo. Los tests de responsables y el documento de resultados los generó la IA a partir del mismo patrón; los revisé y los ejecuté.
