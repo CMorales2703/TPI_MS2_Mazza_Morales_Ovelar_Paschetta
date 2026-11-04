@@ -6,9 +6,9 @@ A diferencia de buscar, esta funcion usa una consulta parametrizada
 """
 
 
-def test_devuelve_la_solicitud_con_su_historial(cliente):
+def test_devuelve_la_solicitud_con_su_historial(client):
     """Caso 11: el detalle incluye un campo historial que el listado no trae."""
-    r = cliente.get("/solicitudes/1")
+    r = client.get("/solicitudes/1")
     assert r.status_code == 200
     d = r.json()
     assert d["id"] == 1
@@ -16,36 +16,36 @@ def test_devuelve_la_solicitud_con_su_historial(cliente):
     assert isinstance(d["historial"], list)
 
 
-def test_id_inexistente_devuelve_404(cliente):
+def test_id_inexistente_devuelve_404(client):
     """Caso 12: un id que no existe devuelve 404."""
-    r = cliente.get("/solicitudes/99999")
+    r = client.get("/solicitudes/99999")
     assert r.status_code == 404
     assert r.json()["detail"] == "no existe"
 
 
-def test_id_cero_devuelve_404(cliente):
+def test_id_cero_devuelve_404(client):
     """Caso 13."""
-    assert cliente.get("/solicitudes/0").status_code == 404
+    assert client.get("/solicitudes/0").status_code == 404
 
 
-def test_id_no_numerico_es_rechazado(cliente):
+def test_id_no_numerico_es_rechazado(client):
     """Caso 15: el tipo del parametro lo valida FastAPI."""
-    assert cliente.get("/solicitudes/abc").status_code == 422
+    assert client.get("/solicitudes/abc").status_code == 422
 
 
-def test_DEFECTO_id_negativo_devuelve_404_en_lugar_de_422(cliente):
+def test_DEFECTO_id_negativo_devuelve_404_en_lugar_de_422(client):
     """
     Caso 14: un id negativo no es un dato inexistente sino imposible.
     Corresponderia 422 (dato invalido) y no 404 (no encontrado). El sistema
     no distingue los dos casos.
     """
-    r = cliente.get("/solicitudes/-5")
+    r = client.get("/solicitudes/-5")
     assert r.status_code == 404
 
 
-def test_el_detalle_no_es_vulnerable_a_inyeccion(cliente):
+def test_el_detalle_no_es_vulnerable_a_inyeccion(client):
     """
     Contraste con buscar: aca el id viaja como parametro, no concatenado,
     asi que un texto malicioso es rechazado por tipo antes de llegar al SQL.
     """
-    assert cliente.get("/solicitudes/1 OR 1=1").status_code == 422
+    assert client.get("/solicitudes/1 OR 1=1").status_code == 422
