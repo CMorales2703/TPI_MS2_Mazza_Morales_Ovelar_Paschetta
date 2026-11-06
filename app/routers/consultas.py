@@ -10,6 +10,55 @@ from app.db import get_db
 router = APIRouter()
 
 
+def fila_a_solicitud(fila):
+    """Convierte una fila de la tabla solicitudes en un diccionario."""
+    return {
+        "id": fila[0],
+        "estudiante_id": fila[1],
+        "tipo": fila[2],
+        "descripcion": fila[3],
+        "prioridad": fila[4],
+        "estado": fila[5],
+        "responsable_id": fila[6],
+        "area": fila[7],
+        "fecha_alta": fila[8],
+        "fecha_mod": fila[9],
+        "canal": fila[10],
+        "obs": fila[11],
+    }
+
+
+def contar(conteos, clave):
+    """Suma uno al contador de esa clave."""
+    conteos[clave] = conteos.get(clave, 0) + 1
+
+
+def esta_cerrada(estado):
+    """Una solicitud cerrada ya no puede vencer."""
+    return estado in ("RES", "RECH", "CANC")
+
+
+def dias_limite(prioridad):
+    """Dias que una solicitud puede permanecer abierta segun su prioridad."""
+    if prioridad == 1:
+        return 2
+    if prioridad == 2:
+        return 5
+    return 10
+
+
+def dias_abierta(fecha_alta, hoy):
+    """Dias transcurridos desde el alta de la solicitud."""
+    return (hoy - datetime.strptime(fecha_alta, "%Y-%m-%d %H:%M:%S")).days
+
+
+def porcentaje_resueltas(por_estado, total):
+    """Porcentaje de solicitudes en estado RES sobre el total."""
+    if total == 0:
+        return 0
+    return round(por_estado.get("RES", 0) * 100 / total, 2)
+
+
 @router.get("/solicitudes")
 def buscar(estado: str = None, tipo: str = None, prioridad: int = None, area: str = None, estudiante_id: int = None,
            texto: str = None, desde: str = None, hasta: str = None, orden: str = "fecha",
@@ -38,12 +87,7 @@ def buscar(estado: str = None, tipo: str = None, prioridad: int = None, area: st
         q += " ORDER BY fecha_alta DESC, id DESC"
     c.execute(q)
     rows = c.fetchall()
-    res = []
-    for r in rows:
-        res.append({"id": r[0], "estudiante_id": r[1], "tipo": r[2], "descripcion": r[3], "prioridad": r[4],
-                    "estado": r[5], "responsable_id": r[6], "area": r[7], "fecha_alta": r[8], "fecha_mod": r[9],
-                    "canal": r[10], "obs": r[11]})
-    return res
+    return [fila_a_solicitud(r) for r in rows]
 
 
 @router.get("/solicitudes/{id}")
@@ -53,8 +97,7 @@ def getSolicitud(id: int, conn: sqlite3.Connection = Depends(get_db)):
     r = c.fetchone()
     if r is None:
         raise HTTPException(status_code=404, detail="no existe")
-    d = {"id": r[0], "estudiante_id": r[1], "tipo": r[2], "descripcion": r[3], "prioridad": r[4], "estado": r[5],
-         "responsable_id": r[6], "area": r[7], "fecha_alta": r[8], "fecha_mod": r[9], "canal": r[10], "obs": r[11]}
+    d = fila_a_solicitud(r)
     c.execute("SELECT * FROM historial WHERE solicitud_id = ? ORDER BY id", (id,))
     h = []
     for x in c.fetchall():
@@ -68,38 +111,25 @@ def reporte(conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
     c.execute("SELECT * FROM solicitudes")
     todas = c.fetchall()
-    total = len(todas)
     por_estado = {}
     por_tipo = {}
     por_area = {}
     vencidas = []
     hoy = datetime.now()
     for s in todas:
-        if s[5] in por_estado:
-            por_estado[s[5]] = por_estado[s[5]] + 1
-        else:
-            por_estado[s[5]] = 1
-        if s[2] in por_tipo:
-            por_tipo[s[2]] = por_tipo[s[2]] + 1
-        else:
-            por_tipo[s[2]] = 1
-        if s[7] in por_area:
-            por_area[s[7]] = por_area[s[7]] + 1
-        else:
-            por_area[s[7]] = 1
-        if s[5] not in ["RES", "RECH", "CANC"]:
-            fa = datetime.strptime(s[8], "%Y-%m-%d %H:%M:%S")
-            if s[4] == 1:
-                dias = 2
-            elif s[4] == 2:
-                dias = 5
-            else:
-                dias = 10
-            if (hoy - fa).days > dias:
-                vencidas.append({"id": s[0], "tipo": s[2], "prioridad": s[4], "dias": (hoy - fa).days})
-    resueltas = por_estado.get("RES", 0)
-    porc = 0
-    if total > 0:
-        porc = round(resueltas * 100 / total, 2)
-    return {"total": total, "por_estado": por_estado, "por_tipo": por_tipo, "por_area": por_area,
-            "porcentaje_resueltas": porc, "vencidas": vencidas}
+        contar(por_estado, s[5])
+        contar(por_tipo, s[2])
+        contar(por_area, s[7])
+        if not esta_cerrada(s[5]):
+            dias = dias_abierta(s[8], hoy)
+            if dias > dias_limite(s[4]):
+                vencidas.append({"id": s[0], "tipo": s[2], "prioridad": s[4], "dias": dias})
+    total = len(todas)
+    return {
+        "total": total,
+        "por_estado": por_estado,
+        "por_tipo": por_tipo,
+        "por_area": por_area,
+        "porcentaje_resueltas": porcentaje_resueltas(por_estado, total),
+        "vencidas": vencidas,
+    }
