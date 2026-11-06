@@ -2,6 +2,8 @@
 
 import sqlite3
 
+from fastapi import Request
+
 RUTA_DB_POR_DEFECTO = "solicitudes.db"
 
 
@@ -23,3 +25,12 @@ def crear_tablas(conn):
     c.execute("""CREATE TABLE IF NOT EXISTS historial (
         id INTEGER PRIMARY KEY AUTOINCREMENT, solicitud_id INTEGER, estado_ant TEXT, estado_nuevo TEXT, fecha TEXT, comentario TEXT)""")
     conn.commit()
+
+
+def get_db(request: Request):
+    """Dependencia de FastAPI: abre una conexión por request y la cierra al terminar."""
+    conn = conectar(request.app.state.ruta_db)
+    try:
+        yield conn
+    finally:
+        conn.close()

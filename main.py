@@ -1,25 +1,22 @@
+import sqlite3
+from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import Body, FastAPI, HTTPException
-
-from app.db import RUTA_DB_POR_DEFECTO, conectar, crear_tablas
+from app.db import RUTA_DB_POR_DEFECTO, conectar, crear_tablas, get_db
 from app.seed import base_vacia, cargar_datos_de_prueba
+from fastapi import APIRouter, Body, Depends, FastAPI, HTTPException
 
-app = FastAPI(title="Sistema de Gestion de Solicitudes Academicas")
-
-conn = conectar(RUTA_DB_POR_DEFECTO)
-c = conn.cursor()
-
-crear_tablas(conn)
-if base_vacia(conn):
-    cargar_datos_de_prueba(conn)
+router = APIRouter()
 
 
 # ---------------- ESTUDIANTES ----------------
 
 
-@app.post("/estudiantes")
-def crear_estudiante(data: dict = Body(...)):
+@router.post("/estudiantes")
+def crear_estudiante(
+    data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
+    c = conn.cursor()
     if "nombre" not in data or data["nombre"] == "" or data["nombre"] is None:
         return {"error": "falta nombre"}
     if "apellido" not in data or data["apellido"] == "":
@@ -52,8 +49,9 @@ def crear_estudiante(data: dict = Body(...)):
     }
 
 
-@app.get("/estudiantes")
-def listar_estudiantes():
+@router.get("/estudiantes")
+def listar_estudiantes(conn: sqlite3.Connection = Depends(get_db)):
+    c = conn.cursor()
     c.execute("SELECT * FROM estudiantes")
     rows = c.fetchall()
     res = []
@@ -74,8 +72,11 @@ def listar_estudiantes():
 # ---------------- RESPONSABLES ----------------
 
 
-@app.post("/responsables")
-def nuevoResponsable(data: dict = Body(...)):
+@router.post("/responsables")
+def nuevoResponsable(
+    data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
+    c = conn.cursor()
     if "nombre" not in data or data["nombre"] == "":
         return {"error": "falta nombre"}
     if "area" not in data or data["area"] not in [
@@ -101,8 +102,9 @@ def nuevoResponsable(data: dict = Body(...)):
     }
 
 
-@app.get("/responsables")
-def get_resp():
+@router.get("/responsables")
+def get_resp(conn: sqlite3.Connection = Depends(get_db)):
+    c = conn.cursor()
     c.execute("SELECT * FROM responsables")
     res = []
     for r in c.fetchall():
@@ -122,6 +124,7 @@ def get_resp():
 
 
 def guardar_solicitud(
+    conn,
     estudiante_id,
     tipo,
     descripcion,
@@ -134,6 +137,7 @@ def guardar_solicitud(
     canal,
     obs,
 ):
+    c = conn.cursor()
     c.execute(
         """INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area,
                  fecha_alta, fecha_mod, canal, obs) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
@@ -164,8 +168,9 @@ def calcular_prioridad(tipo):
     return 2
 
 
-@app.post("/solicitudes")
-def registrar(data: dict = Body(...)):
+@router.post("/solicitudes")
+def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
+    c = conn.cursor()
     # validaciones
     if "estudiante_id" not in data:
         return {"error": "falta estudiante"}
@@ -219,6 +224,7 @@ def registrar(data: dict = Body(...)):
 
     f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     id = guardar_solicitud(
+        conn,
         data["estudiante_id"],
         data["tipo"],
         data["descripcion"],
@@ -269,7 +275,7 @@ def registrar(data: dict = Body(...)):
     }
 
 
-@app.get("/solicitudes")
+@router.get("/solicitudes")
 def buscar(
     estado: str = None,
     tipo: str = None,
@@ -280,7 +286,9 @@ def buscar(
     desde: str = None,
     hasta: str = None,
     orden: str = "fecha",
+    conn: sqlite3.Connection = Depends(get_db),
 ):
+    c = conn.cursor()
     q = "SELECT * FROM solicitudes WHERE 1=1"
     if estado:
         q += " AND estado = '" + estado + "'"
@@ -325,8 +333,9 @@ def buscar(
     return res
 
 
-@app.get("/solicitudes/{id}")
-def getSolicitud(id: int):
+@router.get("/solicitudes/{id}")
+def getSolicitud(id: int, conn: sqlite3.Connection = Depends(get_db)):
+    c = conn.cursor()
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
     r = c.fetchone()
     if r is None:
@@ -360,8 +369,11 @@ def getSolicitud(id: int):
     return d
 
 
-@app.put("/solicitudes/{id}/estado")
-def proc_estado(id: int, data: dict = Body(...)):
+@router.put("/solicitudes/{id}/estado")
+def proc_estado(
+    id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
+    c = conn.cursor()
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
     s = c.fetchone()
     if s is None:
@@ -413,8 +425,11 @@ def proc_estado(id: int, data: dict = Body(...)):
     return {"id": id, "estado": nuevo, "estado_anterior": act}
 
 
-@app.put("/solicitudes/{id}/responsable")
-def asignar(id: int, data: dict = Body(...)):
+@router.put("/solicitudes/{id}/responsable")
+def asignar(
+    id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
+    c = conn.cursor()
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
     s = c.fetchone()
     if s is None:
@@ -455,8 +470,9 @@ def asignar(id: int, data: dict = Body(...)):
 # ---------------- REPORTE ----------------
 
 
-@app.get("/reporte")
-def reporte():
+@router.get("/reporte")
+def reporte(conn: sqlite3.Connection = Depends(get_db)):
+    c = conn.cursor()
     c.execute("SELECT * FROM solicitudes")
     todas = c.fetchall()
     total = len(todas)
@@ -507,3 +523,39 @@ def reporte():
         "porcentaje_resueltas": porc,
         "vencidas": vencidas,
     }
+
+
+# ---------------- APLICACION ----------------
+
+
+def preparar_base(ruta_db):
+    """Crea las tablas y, si la base está vacía, carga los datos de prueba."""
+    conn = conectar(ruta_db)
+    try:
+        crear_tablas(conn)
+        if base_vacia(conn):
+            cargar_datos_de_prueba(conn)
+    finally:
+        conn.close()
+
+
+def crear_app(ruta_db=RUTA_DB_POR_DEFECTO):
+    """Crea la aplicación sobre la base indicada.
+
+    La base se prepara al arrancar la aplicación, no al importar el módulo.
+    """
+
+    @asynccontextmanager
+    async def lifespan(app):
+        preparar_base(app.state.ruta_db)
+        yield
+
+    app = FastAPI(
+        title="Sistema de Gestion de Solicitudes Academicas", lifespan=lifespan
+    )
+    app.state.ruta_db = ruta_db
+    app.include_router(router)
+    return app
+
+
+app = crear_app()
