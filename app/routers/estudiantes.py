@@ -9,8 +9,22 @@ from app.db import get_db
 router = APIRouter()
 
 
+def fila_a_estudiante(fila):
+    """Convierte una fila de la tabla estudiantes en el diccionario de respuesta."""
+    return {
+        "id": fila["id"],
+        "nombre": fila["nombre"],
+        "apellido": fila["apellido"],
+        "legajo": fila["legajo"],
+        "email": fila["email"],
+        "carrera": fila["carrera"],
+    }
+
+
 @router.post("/estudiantes")
-def crear_estudiante(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
+def crear_estudiante(
+    data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
     c = conn.cursor()
     if "nombre" not in data or data["nombre"] == "" or data["nombre"] is None:
         return {"error": "falta nombre"}
@@ -23,19 +37,30 @@ def crear_estudiante(data: dict = Body(...), conn: sqlite3.Connection = Depends(
     c.execute("SELECT * FROM estudiantes WHERE legajo = ?", (data["legajo"],))
     if c.fetchone():
         return {"error": "legajo repetido"}
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
-              (data["nombre"], data["apellido"], data["legajo"], data.get("email", ""), data.get("carrera", "TUP")))
+    c.execute(
+        "INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
+        (
+            data["nombre"],
+            data["apellido"],
+            data["legajo"],
+            data.get("email", ""),
+            data.get("carrera", "TUP"),
+        ),
+    )
     conn.commit()
-    return {"id": c.lastrowid, "nombre": data["nombre"], "apellido": data["apellido"], "legajo": data["legajo"],
-            "email": data.get("email", ""), "carrera": data.get("carrera", "TUP")}
+    return {
+        "id": c.lastrowid,
+        "nombre": data["nombre"],
+        "apellido": data["apellido"],
+        "legajo": data["legajo"],
+        "email": data.get("email", ""),
+        "carrera": data.get("carrera", "TUP"),
+    }
 
 
 @router.get("/estudiantes")
 def listar_estudiantes(conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
+    c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM estudiantes")
-    rows = c.fetchall()
-    res = []
-    for r in rows:
-        res.append({"id": r[0], "nombre": r[1], "apellido": r[2], "legajo": r[3], "email": r[4], "carrera": r[5]})
-    return res
+    return [fila_a_estudiante(fila) for fila in c.fetchall()]

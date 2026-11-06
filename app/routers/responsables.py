@@ -9,6 +9,17 @@ from app.db import get_db
 router = APIRouter()
 
 
+def fila_a_responsable(fila):
+    """Convierte una fila de la tabla responsables en el diccionario de respuesta."""
+    return {
+        "id": fila["id"],
+        "nombre": fila["nombre"],
+        "area": fila["area"],
+        "email": fila["email"],
+        "activo": fila["activo"] == 1,
+    }
+
+
 @router.post("/responsables")
 def crear_responsable(
     data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
@@ -42,16 +53,6 @@ def crear_responsable(
 @router.get("/responsables")
 def listar_responsables(conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
+    c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM responsables")
-    res = []
-    for r in c.fetchall():
-        res.append(
-            {
-                "id": r[0],
-                "nombre": r[1],
-                "area": r[2],
-                "email": r[3],
-                "activo": r[4] == 1,
-            }
-        )
-    return res
+    return [fila_a_responsable(fila) for fila in c.fetchall()]
