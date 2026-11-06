@@ -23,41 +23,60 @@ def fila_a_estudiante(fila):
     }
 
 
-@router.post("/estudiantes")
-def crear_estudiante(
-    data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
-):
-    c = conn.cursor()
+def validar_estudiante(data):
+    """Devuelve el mensaje de error del primer dato inválido, o None si están bien."""
     if "nombre" not in data or data["nombre"] == "" or data["nombre"] is None:
-        return {"error": "falta nombre"}
+        return "falta nombre"
     if "apellido" not in data or data["apellido"] == "":
-        return {"error": "falta apellido"}
+        return "falta apellido"
     if "legajo" not in data or data["legajo"] == "":
-        return {"error": "falta legajo"}
+        return "falta legajo"
     if email_invalido(data):
-        return {"error": "email invalido"}
-    c.execute("SELECT * FROM estudiantes WHERE legajo = ?", (data["legajo"],))
-    if c.fetchone():
-        return {"error": "legajo repetido"}
-    c.execute(
-        "INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
-        (
-            data["nombre"],
-            data["apellido"],
-            data["legajo"],
-            data.get("email", ""),
-            data.get("carrera", CARRERA_POR_DEFECTO),
-        ),
-    )
-    conn.commit()
-    return {
-        "id": c.lastrowid,
+        return "email invalido"
+    return None
+
+
+def legajo_existe(conn, legajo):
+    """Indica si ya hay un estudiante con ese legajo."""
+    c = conn.cursor()
+    c.execute("SELECT * FROM estudiantes WHERE legajo = ?", (legajo,))
+    return c.fetchone() is not None
+
+
+def insertar_estudiante(conn, data):
+    """Guarda el estudiante y devuelve el registro creado."""
+    estudiante = {
         "nombre": data["nombre"],
         "apellido": data["apellido"],
         "legajo": data["legajo"],
         "email": data.get("email", ""),
         "carrera": data.get("carrera", CARRERA_POR_DEFECTO),
     }
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
+        (
+            estudiante["nombre"],
+            estudiante["apellido"],
+            estudiante["legajo"],
+            estudiante["email"],
+            estudiante["carrera"],
+        ),
+    )
+    conn.commit()
+    return {"id": c.lastrowid, **estudiante}
+
+
+@router.post("/estudiantes")
+def crear_estudiante(
+    data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
+):
+    error = validar_estudiante(data)
+    if error:
+        return {"error": error}
+    if legajo_existe(conn, data["legajo"]):
+        return {"error": "legajo repetido"}
+    return insertar_estudiante(conn, data)
 
 
 @router.get("/estudiantes")
