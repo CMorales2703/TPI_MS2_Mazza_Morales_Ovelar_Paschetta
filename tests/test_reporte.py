@@ -8,8 +8,14 @@ def test_devuelve_todos_los_agrupamientos(client):
     r = client.get("/reporte")
     assert r.status_code == 200
     d = r.json()
-    for campo in ("total", "por_estado", "por_tipo", "por_area",
-                  "porcentaje_resueltas", "vencidas"):
+    for campo in (
+        "total",
+        "por_estado",
+        "por_tipo",
+        "por_area",
+        "porcentaje_resueltas",
+        "vencidas",
+    ):
         assert campo in d
 
 
@@ -36,7 +42,8 @@ def test_el_porcentaje_de_resueltas_es_coherente(client):
 
 
 def test_DEFECTO_fecha_con_otro_formato_rompe_el_reporte(
-        client_sin_excepciones, solicitud_con_fecha_invalida):
+    client_sin_excepciones, solicitud_con_fecha_invalida
+):
     """
     Caso 17 (hallazgo 2): strptime en la linea 347 exige el formato
     '%Y-%m-%d %H:%M:%S'. Una sola solicitud con otro formato lanza ValueError
@@ -46,7 +53,8 @@ def test_DEFECTO_fecha_con_otro_formato_rompe_el_reporte(
 
 
 def test_DEFECTO_fecha_nula_rompe_el_reporte(
-        client_sin_excepciones, solicitud_con_fecha_nula):
+    client_sin_excepciones, solicitud_con_fecha_nula
+):
     """
     Caso 18 (hallazgo 2): la misma linea lanza TypeError cuando no hay fecha.
     Dos errores distintos salen de la misma instruccion sin proteccion.
@@ -55,18 +63,16 @@ def test_DEFECTO_fecha_nula_rompe_el_reporte(
 
 
 def test_DEFECTO_el_reporte_se_recupera_al_quitar_el_dato_malo(
-        client_sin_excepciones, solicitud_con_fecha_invalida):
+    client_sin_excepciones, solicitud_con_fecha_invalida, conexion_db
+):
     """
     El fallo viene del dato y no deja el sistema en un estado inconsistente:
     con la solicitud defectuosa el reporte devuelve 500, y al borrarla vuelve
     a responder 200 sin reiniciar nada.
     """
-    import sys
-
     assert client_sin_excepciones.get("/reporte").status_code == 500
 
-    main = sys.modules["main"]
-    main.c.execute("DELETE FROM solicitudes WHERE descripcion LIKE 'Test - %'")
-    main.conn.commit()
+    conexion_db.execute("DELETE FROM solicitudes WHERE descripcion LIKE 'Test - %'")
+    conexion_db.commit()
 
     assert client_sin_excepciones.get("/reporte").status_code == 200
