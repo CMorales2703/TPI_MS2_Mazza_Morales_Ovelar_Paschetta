@@ -146,12 +146,13 @@ Tipos válidos: `CERT`, `EQUIV`, `MESA`, `RECLAMO`, `BAJA`.
 |---|---|
 | `estado-inicial` | Sistema base sin modificar |
 | `etapa-diagnostico` | Cierre del diagnóstico |
+| `etapa-tests` | Tests de línea de base, antes del refactoring |
 | `etapa-refactoring` | Cierre de los refactorings |
 | `etapa-pruebas` | Cierre de la verificación |
 | `etapa-docs` | Cierre de la documentación |
 | `estadorefactorizado` | Versión final |
 
-Los tags de etapa se crean sobre `dev`; el tag `estadorefactorizado` se crea sobre `main` una vez integrada la versión final.
+Al cerrar cada etapa se integra `dev` en `main` con un PR (merge commit) y el tag de la etapa se crea sobre `main`. El tag `estadorefactorizado` marca la versión final.
 
 El checklist de code review, las decisiones técnicas y las evidencias están en la carpeta [`docs/`](docs/).
 
