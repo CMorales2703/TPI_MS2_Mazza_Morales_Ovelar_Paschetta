@@ -1,60 +1,22 @@
-from fastapi import FastAPI, Body, HTTPException
-import sqlite3
 from datetime import datetime
+
+from fastapi import Body, FastAPI, HTTPException
+
+from app.db import RUTA_DB_POR_DEFECTO, conectar, crear_tablas
+from app.seed import base_vacia, cargar_datos_de_prueba
 
 app = FastAPI(title="Sistema de Gestion de Solicitudes Academicas")
 
-conn = sqlite3.connect("solicitudes.db", check_same_thread=False)
+conn = conectar(RUTA_DB_POR_DEFECTO)
 c = conn.cursor()
 
-c.execute("""CREATE TABLE IF NOT EXISTS estudiantes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, apellido TEXT, legajo TEXT, email TEXT, carrera TEXT)""")
-c.execute("""CREATE TABLE IF NOT EXISTS responsables (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, area TEXT, email TEXT, activo INTEGER)""")
-c.execute("""CREATE TABLE IF NOT EXISTS solicitudes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, estudiante_id INTEGER, tipo TEXT, descripcion TEXT, prioridad INTEGER,
-    estado TEXT, responsable_id INTEGER, area TEXT, fecha_alta TEXT, fecha_mod TEXT, canal TEXT, obs TEXT)""")
-c.execute("""CREATE TABLE IF NOT EXISTS historial (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, solicitud_id INTEGER, estado_ant TEXT, estado_nuevo TEXT, fecha TEXT, comentario TEXT)""")
-conn.commit()
-
-# datos de prueba (sinteticos)
-c.execute("SELECT COUNT(*) FROM estudiantes")
-if c.fetchone()[0] == 0:
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES ('Lucia','Ferreyra','TUP-1001','lucia.ferreyra@ejemplo.com','TUP')")
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES ('Mateo','Quiroga','TUP-1002','mateo.quiroga@ejemplo.com','TUP')")
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES ('Sofia','Aranda','TUP-1003','sofia.aranda@ejemplo.com','TUP')")
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES ('Tomas','Villalba','TUP-1004','tomas.villalba@ejemplo.com','TUP')")
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES ('Graciela Molina','Alumnado','gmolina@ejemplo.com',1)")
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES ('Ruben Castro','Alumnado','rcastro@ejemplo.com',0)")
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES ('Paula Diaz','Departamento Academico','pdiaz@ejemplo.com',1)")
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES ('Hector Ruiz','Bedelia','hruiz@ejemplo.com',1)")
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES ('Marina Sosa','Coordinacion','msosa@ejemplo.com',1)")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (1,'CERT','Necesito certificado de alumna regular para la obra social',3,'PEND',NULL,'Alumnado','2026-09-01 10:15:00','2026-09-01 10:15:00','WEB','')")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (2,'EQUIV','Pido equivalencia de Programacion I aprobada en otra universidad',2,'ASIG',3,'Departamento Academico','2026-09-03 09:00:00','2026-09-04 11:20:00','MAIL','adjunta programa')")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (3,'MESA','Solicito mesa especial de Matematica por superposicion de fechas',1,'EN_PROC',4,'Bedelia','2026-09-10 14:30:00','2026-09-12 08:45:00','WEB','')")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (4,'RECLAMO','La nota del parcial 1 no figura cargada en el sistema',1,'RES',5,'Coordinacion','2026-09-15 16:00:00','2026-09-16 10:00:00','PRESENCIAL','')")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (1,'BAJA','Quiero dar de baja la materia Ingles II este cuatrimestre',2,'RECH',1,'Alumnado','2026-09-20 12:00:00','2026-09-22 09:30:00','WEB','')")
-    c.execute("INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs) VALUES (2,'CERT','Certificado analitico parcial urgente para presentar en trabajo',1,'PEND',NULL,'Alumnado','2026-10-01 08:10:00','2026-10-01 08:10:00','WEB','')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (1,NULL,'PEND','2026-09-01 10:15:00','alta de solicitud')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (2,NULL,'PEND','2026-09-03 09:00:00','alta de solicitud')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (2,'PEND','ASIG','2026-09-04 11:20:00','asignada a Paula Diaz')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (3,NULL,'PEND','2026-09-10 14:30:00','alta de solicitud')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (3,'PEND','ASIG','2026-09-11 09:00:00','asignada a Hector Ruiz')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (3,'ASIG','EN_PROC','2026-09-12 08:45:00','')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (4,NULL,'PEND','2026-09-15 16:00:00','alta de solicitud')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (4,'PEND','ASIG','2026-09-15 17:00:00','asignada a Marina Sosa')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (4,'ASIG','EN_PROC','2026-09-16 08:00:00','')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (4,'EN_PROC','RES','2026-09-16 10:00:00','nota cargada')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (5,NULL,'PEND','2026-09-20 12:00:00','alta de solicitud')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (5,'PEND','ASIG','2026-09-21 10:00:00','asignada a Graciela Molina')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (5,'ASIG','EN_PROC','2026-09-21 15:00:00','')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (5,'EN_PROC','RECH','2026-09-22 09:30:00','fuera de termino')")
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (6,NULL,'PEND','2026-10-01 08:10:00','alta de solicitud')")
-    conn.commit()
+crear_tablas(conn)
+if base_vacia(conn):
+    cargar_datos_de_prueba(conn)
 
 
 # ---------------- ESTUDIANTES ----------------
+
 
 @app.post("/estudiantes")
 def crear_estudiante(data: dict = Body(...)):
@@ -69,11 +31,25 @@ def crear_estudiante(data: dict = Body(...)):
     c.execute("SELECT * FROM estudiantes WHERE legajo = ?", (data["legajo"],))
     if c.fetchone():
         return {"error": "legajo repetido"}
-    c.execute("INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
-              (data["nombre"], data["apellido"], data["legajo"], data.get("email", ""), data.get("carrera", "TUP")))
+    c.execute(
+        "INSERT INTO estudiantes (nombre, apellido, legajo, email, carrera) VALUES (?,?,?,?,?)",
+        (
+            data["nombre"],
+            data["apellido"],
+            data["legajo"],
+            data.get("email", ""),
+            data.get("carrera", "TUP"),
+        ),
+    )
     conn.commit()
-    return {"id": c.lastrowid, "nombre": data["nombre"], "apellido": data["apellido"], "legajo": data["legajo"],
-            "email": data.get("email", ""), "carrera": data.get("carrera", "TUP")}
+    return {
+        "id": c.lastrowid,
+        "nombre": data["nombre"],
+        "apellido": data["apellido"],
+        "legajo": data["legajo"],
+        "email": data.get("email", ""),
+        "carrera": data.get("carrera", "TUP"),
+    }
 
 
 @app.get("/estudiantes")
@@ -82,24 +58,47 @@ def listar_estudiantes():
     rows = c.fetchall()
     res = []
     for r in rows:
-        res.append({"id": r[0], "nombre": r[1], "apellido": r[2], "legajo": r[3], "email": r[4], "carrera": r[5]})
+        res.append(
+            {
+                "id": r[0],
+                "nombre": r[1],
+                "apellido": r[2],
+                "legajo": r[3],
+                "email": r[4],
+                "carrera": r[5],
+            }
+        )
     return res
 
 
 # ---------------- RESPONSABLES ----------------
 
+
 @app.post("/responsables")
 def nuevoResponsable(data: dict = Body(...)):
     if "nombre" not in data or data["nombre"] == "":
         return {"error": "falta nombre"}
-    if "area" not in data or data["area"] not in ["Alumnado", "Departamento Academico", "Bedelia", "Coordinacion"]:
+    if "area" not in data or data["area"] not in [
+        "Alumnado",
+        "Departamento Academico",
+        "Bedelia",
+        "Coordinacion",
+    ]:
         return {"error": "area invalida"}
     if "email" in data and "@" not in data["email"]:
         return {"error": "email invalido"}
-    c.execute("INSERT INTO responsables (nombre, area, email, activo) VALUES (?,?,?,?)",
-              (data["nombre"], data["area"], data.get("email", ""), 1))
+    c.execute(
+        "INSERT INTO responsables (nombre, area, email, activo) VALUES (?,?,?,?)",
+        (data["nombre"], data["area"], data.get("email", ""), 1),
+    )
     conn.commit()
-    return {"id": c.lastrowid, "nombre": data["nombre"], "area": data["area"], "email": data.get("email", ""), "activo": True}
+    return {
+        "id": c.lastrowid,
+        "nombre": data["nombre"],
+        "area": data["area"],
+        "email": data.get("email", ""),
+        "activo": True,
+    }
 
 
 @app.get("/responsables")
@@ -107,16 +106,51 @@ def get_resp():
     c.execute("SELECT * FROM responsables")
     res = []
     for r in c.fetchall():
-        res.append({"id": r[0], "nombre": r[1], "area": r[2], "email": r[3], "activo": r[4] == 1})
+        res.append(
+            {
+                "id": r[0],
+                "nombre": r[1],
+                "area": r[2],
+                "email": r[3],
+                "activo": r[4] == 1,
+            }
+        )
     return res
 
 
 # ---------------- SOLICITUDES ----------------
 
-def guardar_solicitud(estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs):
-    c.execute("""INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area,
+
+def guardar_solicitud(
+    estudiante_id,
+    tipo,
+    descripcion,
+    prioridad,
+    estado,
+    responsable_id,
+    area,
+    fecha_alta,
+    fecha_mod,
+    canal,
+    obs,
+):
+    c.execute(
+        """INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area,
                  fecha_alta, fecha_mod, canal, obs) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-              (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs))
+        (
+            estudiante_id,
+            tipo,
+            descripcion,
+            prioridad,
+            estado,
+            responsable_id,
+            area,
+            fecha_alta,
+            fecha_mod,
+            canal,
+            obs,
+        ),
+    )
     conn.commit()
     return c.lastrowid
 
@@ -139,7 +173,13 @@ def registrar(data: dict = Body(...)):
     est = c.fetchone()
     if est is None:
         return {"error": "estudiante no existe"}
-    if "tipo" not in data or data["tipo"] not in ["CERT", "EQUIV", "MESA", "RECLAMO", "BAJA"]:
+    if "tipo" not in data or data["tipo"] not in [
+        "CERT",
+        "EQUIV",
+        "MESA",
+        "RECLAMO",
+        "BAJA",
+    ]:
         return {"error": "tipo invalido"}
     if "descripcion" not in data or len(data["descripcion"]) < 10:
         return {"error": "descripcion muy corta"}
@@ -178,10 +218,23 @@ def registrar(data: dict = Body(...)):
         canal = "WEB"
 
     f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    id = guardar_solicitud(data["estudiante_id"], data["tipo"], data["descripcion"], p, "PEND", None, a, f, f,
-                           canal, data.get("obs", ""))
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-              (id, None, "PEND", f, "alta de solicitud"))
+    id = guardar_solicitud(
+        data["estudiante_id"],
+        data["tipo"],
+        data["descripcion"],
+        p,
+        "PEND",
+        None,
+        a,
+        f,
+        f,
+        canal,
+        data.get("obs", ""),
+    )
+    c.execute(
+        "INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
+        (id, None, "PEND", f, "alta de solicitud"),
+    )
     conn.commit()
     # c.execute("UPDATE estudiantes SET carrera = 'TUP' WHERE id = ?", (data["estudiante_id"],))
     # conn.commit()
@@ -189,18 +242,45 @@ def registrar(data: dict = Body(...)):
     # notificar al estudiante
     try:
         with open("notificaciones.log", "a") as arch:
-            arch.write(f + " - Se envio mail a " + est[4] + ": su solicitud " + str(id) + " fue registrada\n")
+            arch.write(
+                f
+                + " - Se envio mail a "
+                + est[4]
+                + ": su solicitud "
+                + str(id)
+                + " fue registrada\n"
+            )
     except:
         pass
 
-    return {"id": id, "estudiante_id": data["estudiante_id"], "tipo": data["tipo"], "descripcion": data["descripcion"],
-            "prioridad": p, "estado": "PEND", "responsable_id": None, "area": a, "fecha_alta": f, "fecha_mod": f,
-            "canal": canal, "obs": data.get("obs", "")}
+    return {
+        "id": id,
+        "estudiante_id": data["estudiante_id"],
+        "tipo": data["tipo"],
+        "descripcion": data["descripcion"],
+        "prioridad": p,
+        "estado": "PEND",
+        "responsable_id": None,
+        "area": a,
+        "fecha_alta": f,
+        "fecha_mod": f,
+        "canal": canal,
+        "obs": data.get("obs", ""),
+    }
 
 
 @app.get("/solicitudes")
-def buscar(estado: str = None, tipo: str = None, prioridad: int = None, area: str = None, estudiante_id: int = None,
-           texto: str = None, desde: str = None, hasta: str = None, orden: str = "fecha"):
+def buscar(
+    estado: str = None,
+    tipo: str = None,
+    prioridad: int = None,
+    area: str = None,
+    estudiante_id: int = None,
+    texto: str = None,
+    desde: str = None,
+    hasta: str = None,
+    orden: str = "fecha",
+):
     q = "SELECT * FROM solicitudes WHERE 1=1"
     if estado:
         q += " AND estado = '" + estado + "'"
@@ -226,9 +306,22 @@ def buscar(estado: str = None, tipo: str = None, prioridad: int = None, area: st
     rows = c.fetchall()
     res = []
     for r in rows:
-        res.append({"id": r[0], "estudiante_id": r[1], "tipo": r[2], "descripcion": r[3], "prioridad": r[4],
-                    "estado": r[5], "responsable_id": r[6], "area": r[7], "fecha_alta": r[8], "fecha_mod": r[9],
-                    "canal": r[10], "obs": r[11]})
+        res.append(
+            {
+                "id": r[0],
+                "estudiante_id": r[1],
+                "tipo": r[2],
+                "descripcion": r[3],
+                "prioridad": r[4],
+                "estado": r[5],
+                "responsable_id": r[6],
+                "area": r[7],
+                "fecha_alta": r[8],
+                "fecha_mod": r[9],
+                "canal": r[10],
+                "obs": r[11],
+            }
+        )
     return res
 
 
@@ -238,12 +331,31 @@ def getSolicitud(id: int):
     r = c.fetchone()
     if r is None:
         raise HTTPException(status_code=404, detail="no existe")
-    d = {"id": r[0], "estudiante_id": r[1], "tipo": r[2], "descripcion": r[3], "prioridad": r[4], "estado": r[5],
-         "responsable_id": r[6], "area": r[7], "fecha_alta": r[8], "fecha_mod": r[9], "canal": r[10], "obs": r[11]}
+    d = {
+        "id": r[0],
+        "estudiante_id": r[1],
+        "tipo": r[2],
+        "descripcion": r[3],
+        "prioridad": r[4],
+        "estado": r[5],
+        "responsable_id": r[6],
+        "area": r[7],
+        "fecha_alta": r[8],
+        "fecha_mod": r[9],
+        "canal": r[10],
+        "obs": r[11],
+    }
     c.execute("SELECT * FROM historial WHERE solicitud_id = ? ORDER BY id", (id,))
     h = []
     for x in c.fetchall():
-        h.append({"estado_anterior": x[2], "estado_nuevo": x[3], "fecha": x[4], "comentario": x[5]})
+        h.append(
+            {
+                "estado_anterior": x[2],
+                "estado_nuevo": x[3],
+                "fecha": x[4],
+                "comentario": x[5],
+            }
+        )
     d["historial"] = h
     return d
 
@@ -271,9 +383,13 @@ def proc_estado(id: int, data: dict = Body(...)):
         return {"error": "para rechazar hay que poner motivo"}
 
     f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("UPDATE solicitudes SET estado = ?, fecha_mod = ? WHERE id = ?", (nuevo, f, id))
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-              (id, act, nuevo, f, data.get("comentario", "")))
+    c.execute(
+        "UPDATE solicitudes SET estado = ?, fecha_mod = ? WHERE id = ?", (nuevo, f, id)
+    )
+    c.execute(
+        "INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
+        (id, act, nuevo, f, data.get("comentario", "")),
+    )
     conn.commit()
 
     # notificar al estudiante
@@ -281,7 +397,16 @@ def proc_estado(id: int, data: dict = Body(...)):
     est = c.fetchone()
     try:
         with open("notificaciones.log", "a") as arch:
-            arch.write(f + " - Se envio mail a " + est[4] + ": su solicitud " + str(id) + " paso a " + nuevo + "\n")
+            arch.write(
+                f
+                + " - Se envio mail a "
+                + est[4]
+                + ": su solicitud "
+                + str(id)
+                + " paso a "
+                + nuevo
+                + "\n"
+            )
     except:
         pass
 
@@ -309,16 +434,26 @@ def asignar(id: int, data: dict = Body(...)):
     nuevo_estado = s[5]
     if s[5] == "PEND":
         nuevo_estado = "ASIG"
-    c.execute("UPDATE solicitudes SET responsable_id = ?, estado = ?, fecha_mod = ? WHERE id = ?",
-              (r[0], nuevo_estado, f, id))
+    c.execute(
+        "UPDATE solicitudes SET responsable_id = ?, estado = ?, fecha_mod = ? WHERE id = ?",
+        (r[0], nuevo_estado, f, id),
+    )
     if nuevo_estado != s[5]:
-        c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-                  (id, s[5], nuevo_estado, f, "asignada a " + r[1]))
+        c.execute(
+            "INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
+            (id, s[5], nuevo_estado, f, "asignada a " + r[1]),
+        )
     conn.commit()
-    return {"id": id, "responsable_id": r[0], "responsable": r[1], "estado": nuevo_estado}
+    return {
+        "id": id,
+        "responsable_id": r[0],
+        "responsable": r[1],
+        "estado": nuevo_estado,
+    }
 
 
 # ---------------- REPORTE ----------------
+
 
 @app.get("/reporte")
 def reporte():
@@ -352,10 +487,23 @@ def reporte():
             else:
                 dias = 10
             if (hoy - fa).days > dias:
-                vencidas.append({"id": s[0], "tipo": s[2], "prioridad": s[4], "dias": (hoy - fa).days})
+                vencidas.append(
+                    {
+                        "id": s[0],
+                        "tipo": s[2],
+                        "prioridad": s[4],
+                        "dias": (hoy - fa).days,
+                    }
+                )
     resueltas = por_estado.get("RES", 0)
     porc = 0
     if total > 0:
         porc = round(resueltas * 100 / total, 2)
-    return {"total": total, "por_estado": por_estado, "por_tipo": por_tipo, "por_area": por_area,
-            "porcentaje_resueltas": porc, "vencidas": vencidas}
+    return {
+        "total": total,
+        "por_estado": por_estado,
+        "por_tipo": por_tipo,
+        "por_area": por_area,
+        "porcentaje_resueltas": porc,
+        "vencidas": vencidas,
+    }
