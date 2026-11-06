@@ -5,7 +5,7 @@ import sqlite3
 from fastapi import APIRouter, Body, Depends
 
 from app.db import get_db
-
+from app.dominio import CARRERA_POR_DEFECTO
 from app.validaciones import email_invalido
 
 router = APIRouter()
@@ -46,7 +46,7 @@ def crear_estudiante(
             data["apellido"],
             data["legajo"],
             data.get("email", ""),
-            data.get("carrera", "TUP"),
+            data.get("carrera", CARRERA_POR_DEFECTO),
         ),
     )
     conn.commit()
@@ -56,7 +56,7 @@ def crear_estudiante(
         "apellido": data["apellido"],
         "legajo": data["legajo"],
         "email": data.get("email", ""),
-        "carrera": data.get("carrera", "TUP"),
+        "carrera": data.get("carrera", CARRERA_POR_DEFECTO),
     }
 
 

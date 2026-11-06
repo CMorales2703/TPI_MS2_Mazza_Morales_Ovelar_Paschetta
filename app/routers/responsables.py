@@ -5,7 +5,7 @@ import sqlite3
 from fastapi import APIRouter, Body, Depends
 
 from app.db import get_db
-
+from app.dominio import AREAS
 from app.validaciones import email_invalido
 
 router = APIRouter()
@@ -29,12 +29,7 @@ def crear_responsable(
     c = conn.cursor()
     if "nombre" not in data or data["nombre"] == "":
         return {"error": "falta nombre"}
-    if "area" not in data or data["area"] not in [
-        "Alumnado",
-        "Departamento Academico",
-        "Bedelia",
-        "Coordinacion",
-    ]:
+    if "area" not in data or data["area"] not in AREAS:
         return {"error": "area invalida"}
     if email_invalido(data):
         return {"error": "email invalido"}
