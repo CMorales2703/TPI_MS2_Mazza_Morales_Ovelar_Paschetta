@@ -30,3 +30,39 @@ def client(tmp_path, monkeypatch):
     finally:
         main.conn.close()
         sys.modules.pop("main", None)
+
+
+@pytest.fixture
+def client_sin_excepciones(client):
+    """Mismo sistema y misma base que client, pero un error interno
+    devuelve 500 en lugar de cortar el test."""
+    with TestClient(client.app, raise_server_exceptions=False) as c:
+        yield c
+
+
+# --- datos que reproducen los defectos del reporte ---------------------------
+
+def _insertar_solicitud(descripcion, fecha_alta):
+    """Inserta una solicitud en la base del test en curso."""
+    main = sys.modules["main"]
+    main.c.execute(
+        "INSERT INTO solicitudes "
+        "(estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, "
+        "area, fecha_alta, fecha_mod, canal, obs) "
+        "VALUES (1, 'CERT', ?, 3, 'PEND', NULL, 'Alumnado', ?, ?, 'WEB', '')",
+        (descripcion, fecha_alta, fecha_alta),
+    )
+    main.conn.commit()
+
+
+@pytest.fixture
+def solicitud_con_fecha_invalida(client):
+    """Solicitud con fecha_alta en un formato que el reporte no interpreta.
+    Reproduce el caso 17 del diagnostico."""
+    _insertar_solicitud("Test - fecha sin hora", "2026-11-01")
+
+
+@pytest.fixture
+def solicitud_con_fecha_nula(client):
+    """Solicitud con fecha_alta nula. Reproduce el caso 18."""
+    _insertar_solicitud("Test - fecha nula", None)
