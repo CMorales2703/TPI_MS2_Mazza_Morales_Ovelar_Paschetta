@@ -6,6 +6,8 @@ from fastapi import APIRouter, Body, Depends
 
 from app.db import get_db
 
+from app.validaciones import email_invalido
+
 router = APIRouter()
 
 
@@ -32,7 +34,7 @@ def crear_estudiante(
         return {"error": "falta apellido"}
     if "legajo" not in data or data["legajo"] == "":
         return {"error": "falta legajo"}
-    if "email" in data and "@" not in data["email"]:
+    if email_invalido(data):
         return {"error": "email invalido"}
     c.execute("SELECT * FROM estudiantes WHERE legajo = ?", (data["legajo"],))
     if c.fetchone():

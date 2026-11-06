@@ -6,6 +6,8 @@ from fastapi import APIRouter, Body, Depends
 
 from app.db import get_db
 
+from app.validaciones import email_invalido
+
 router = APIRouter()
 
 
@@ -34,7 +36,7 @@ def crear_responsable(
         "Coordinacion",
     ]:
         return {"error": "area invalida"}
-    if "email" in data and "@" not in data["email"]:
+    if email_invalido(data):
         return {"error": "email invalido"}
     c.execute(
         "INSERT INTO responsables (nombre, area, email, activo) VALUES (?,?,?,?)",
