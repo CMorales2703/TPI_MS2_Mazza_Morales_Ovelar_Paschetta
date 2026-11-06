@@ -1,6 +1,8 @@
 """
-Tests de GET /reporte (funcion reporte, lineas 323-361).
+Tests de GET /reporte (app/routers/consultas.py).
 """
+
+from datetime import datetime, timedelta
 
 
 def test_devuelve_todos_los_agrupamientos(client):
@@ -76,3 +78,53 @@ def test_DEFECTO_el_reporte_se_recupera_al_quitar_el_dato_malo(
     conexion_db.commit()
 
     assert client_sin_excepciones.get("/reporte").status_code == 200
+
+
+# --- cobertura del calculo de vencidas ---------------------------------------
+# Estos casos faltaban: la suite no verificaba cual es el limite de dias de
+# cada prioridad, asi que un error ahi no habria hecho fallar ningun test.
+
+def _insertar_con_antiguedad(conn, dias, prioridad, estado="PEND"):
+    """Inserta una solicitud con una antiguedad concreta y devuelve su id."""
+    fecha = (datetime.now() - timedelta(days=dias)).strftime("%Y-%m-%d %H:%M:%S")
+    cur = conn.execute(
+        "INSERT INTO solicitudes "
+        "(estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, "
+        "area, fecha_alta, fecha_mod, canal, obs) "
+        "VALUES (1, 'CERT', 'Test - vencimiento', ?, ?, NULL, 'Alumnado', ?, ?, 'WEB', '')",
+        (prioridad, estado, fecha, fecha),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def test_una_solicitud_abierta_y_vieja_figura_como_vencida(client, conexion_db):
+    """Una solicitud de prioridad 3 con 15 dias abiertos supera el limite de 10."""
+    id_nueva = _insertar_con_antiguedad(conexion_db, dias=15, prioridad=3)
+
+    vencidas = client.get("/reporte").json()["vencidas"]
+    fila = [v for v in vencidas if v["id"] == id_nueva]
+
+    assert len(fila) == 1
+    assert fila[0]["dias"] == 15
+    assert fila[0]["prioridad"] == 3
+
+
+def test_el_limite_de_vencimiento_depende_de_la_prioridad(client, conexion_db):
+    """A los 7 dias, la prioridad 1 (limite 2) vencio y la prioridad 3 (limite 10) no."""
+    urgente = _insertar_con_antiguedad(conexion_db, dias=7, prioridad=1)
+    normal = _insertar_con_antiguedad(conexion_db, dias=7, prioridad=3)
+
+    ids = [v["id"] for v in client.get("/reporte").json()["vencidas"]]
+
+    assert urgente in ids
+    assert normal not in ids
+
+
+def test_una_solicitud_cerrada_nunca_figura_como_vencida(client, conexion_db):
+    """El vencimiento solo corre para las solicitudes que siguen abiertas."""
+    cerrada = _insertar_con_antiguedad(conexion_db, dias=90, prioridad=1, estado="RES")
+
+    ids = [v["id"] for v in client.get("/reporte").json()["vencidas"]]
+
+    assert cerrada not in ids
