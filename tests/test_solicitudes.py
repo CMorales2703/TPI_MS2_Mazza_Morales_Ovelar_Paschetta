@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 
 DESCRIPCION = "Solicito mesa especial de Algoritmos por superposicion"
 
@@ -229,3 +231,48 @@ def test_registrar_notifica_a_estudiante_sin_email(client):
     # Actual: "Se envio mail a : ...". Esperado: avisar que no se pudo notificar.
     assert lineas_notificaciones()[-1].endswith(
         f"Se envio mail a : su solicitud {resultado['id']} fue registrada")
+
+
+# --- Fase 3: reglas por tipo que ningún caso de la Fase 1 cubría ---------------
+
+
+@pytest.mark.parametrize("tipo, prioridad, area", [
+    ("CERT", 3, "Alumnado"),
+    ("EQUIV", 2, "Departamento Academico"),
+    ("MESA", 1, "Bedelia"),
+    ("RECLAMO", 1, "Coordinacion"),
+    ("BAJA", 2, "Alumnado"),
+])
+def test_registrar_asigna_prioridad_y_area_segun_tipo(client, tipo, prioridad, area):
+    """Prioridad por defecto y área de cada tipo, sin "urgente" (hallazgos 2 y 6)."""
+    respuesta = client.post("/solicitudes", json={
+        "estudiante_id": 1, "tipo": tipo, "descripcion": "Pedido de prueba sin apuro"})
+
+    # Actual: 200 con la regla del tipo. Esperado: 201 con la misma regla.
+    assert respuesta.status_code == 200
+    resultado = respuesta.json()
+    assert resultado["prioridad"] == prioridad
+    assert resultado["area"] == area
+    guardada = buscar_solicitud(client, resultado["id"])
+    assert (guardada["prioridad"], guardada["area"]) == (prioridad, area)
+
+
+def test_registrar_urgente_no_distingue_mayusculas(client):
+    """"URGENTE" en mayúsculas también sube la prioridad a 1 (hallazgo 2)."""
+    respuesta = client.post("/solicitudes", json={
+        "estudiante_id": 1, "tipo": "CERT", "descripcion": "Certificado URGENTE para la beca"})
+
+    # Actual: 200, prioridad 1. Esperado: 201, prioridad 1.
+    assert respuesta.status_code == 200
+    assert respuesta.json()["prioridad"] == 1
+
+
+def test_registrar_urgente_no_pisa_prioridad_enviada(client):
+    """Si el cliente manda la prioridad, "urgente" no la cambia (hallazgo 2)."""
+    respuesta = client.post("/solicitudes", json={
+        "estudiante_id": 1, "tipo": "CERT", "descripcion": "Certificado urgente para la beca",
+        "prioridad": 3})
+
+    # Actual: 200, prioridad 3. Esperado: 201, prioridad 3.
+    assert respuesta.status_code == 200
+    assert respuesta.json()["prioridad"] == 3
