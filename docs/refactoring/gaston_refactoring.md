@@ -80,7 +80,7 @@ return {"id": id, **asdict(solicitud)}
 
 ## T — Tests de la regla de cada tipo (hallazgos 2 y 6)
 
-Antes de tocar la regla de prioridad comprobé qué la protegía, con la técnica de Bruno: cambiar la regla a mano y correr la suite. Cambiar la prioridad de CERT sin "urgente", de EQUIV, de RECLAMO o de BAJA, o el área de RECLAMO, dejaba los 67 tests en verde. Solo MESA y CERT con "urgente" estaban cubiertos.
+Antes de tocar la regla de prioridad se comprobó qué la protegía, con la técnica de Bruno: cambiar la regla a mano y correr la suite. Cambiar la prioridad de CERT sin "urgente", de EQUIV, de RECLAMO o de BAJA, o el área de RECLAMO, dejaba los 67 tests en verde. Solo MESA y CERT con "urgente" estaban cubiertos.
 
 **Antes:** ningún test fijaba la prioridad por defecto ni el área de cada tipo.
 
