@@ -30,6 +30,7 @@ class NuevaSolicitud:
 
 
 def guardar_solicitud(conn, solicitud):
+    """Inserta la solicitud y devuelve su id."""
     c = conn.cursor()
     c.execute("""INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area,
                  fecha_alta, fecha_mod, canal, obs)
@@ -76,35 +77,31 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     if "estudiante_id" not in data:
         return {"error": "falta estudiante"}
     c.execute("SELECT * FROM estudiantes WHERE id = ?", (data["estudiante_id"],))
-    est = c.fetchone()
-    if est is None:
+    estudiante = c.fetchone()
+    if estudiante is None:
         return {"error": "estudiante no existe"}
     if "tipo" not in data or data["tipo"] not in TIPOS:
         return {"error": "tipo invalido"}
     if "descripcion" not in data or len(data["descripcion"]) < 10:
         return {"error": "descripcion muy corta"}
 
-    p = data.get("prioridad")
-    if p is None:
-        p = calcular_prioridad(data["tipo"], data["descripcion"])
-    elif p not in [1, 2, 3]:
+    prioridad = data.get("prioridad")
+    if prioridad is None:
+        prioridad = calcular_prioridad(data["tipo"], data["descripcion"])
+    elif prioridad not in [1, 2, 3]:
         return {"error": "prioridad invalida"}
-
-    a = determinar_area(data["tipo"])
 
     canal = data.get("canal", "WEB")
     if canal not in ["WEB", "MAIL", "PRESENCIAL"]:
         canal = "WEB"
 
-    f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     solicitud = NuevaSolicitud(estudiante_id=data["estudiante_id"], tipo=data["tipo"], descripcion=data["descripcion"],
-                               prioridad=p, estado="PEND", responsable_id=None, area=a,
-                               fecha_alta=f, fecha_mod=f, canal=canal, obs=data.get("obs", ""))
-    id = guardar_solicitud(conn, solicitud)
-    registrar_alta_en_historial(conn, id, f)
-    # c.execute("UPDATE estudiantes SET carrera = 'TUP' WHERE id = ?", (data["estudiante_id"],))
-    # conn.commit()
+                               prioridad=prioridad, estado="PEND", responsable_id=None,
+                               area=determinar_area(data["tipo"]), fecha_alta=fecha, fecha_mod=fecha,
+                               canal=canal, obs=data.get("obs", ""))
+    solicitud_id = guardar_solicitud(conn, solicitud)
+    registrar_alta_en_historial(conn, solicitud_id, fecha)
+    notificar_alta(estudiante["email"], solicitud_id, fecha)
 
-    notificar_alta(est["email"], id, f)
-
-    return {"id": id, **asdict(solicitud)}
+    return {"id": solicitud_id, **asdict(solicitud)}
