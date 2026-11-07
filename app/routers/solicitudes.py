@@ -71,6 +71,7 @@ def notificar_alta(email, solicitud_id, fecha):
 @router.post("/solicitudes")
 def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
+    c.row_factory = sqlite3.Row
     # validaciones
     if "estudiante_id" not in data:
         return {"error": "falta estudiante"}
@@ -104,6 +105,6 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     # c.execute("UPDATE estudiantes SET carrera = 'TUP' WHERE id = ?", (data["estudiante_id"],))
     # conn.commit()
 
-    notificar_alta(est[4], id, f)
+    notificar_alta(est["email"], id, f)
 
     return {"id": id, **asdict(solicitud)}
