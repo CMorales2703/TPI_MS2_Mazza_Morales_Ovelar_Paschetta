@@ -7,6 +7,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 
 from app.db import get_db
 
+from app.dominio import ESTADOS_CERRADOS, transicion_permitida
+
 router = APIRouter()
 
 
@@ -19,14 +21,8 @@ def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depe
         raise HTTPException(status_code=404, detail="no existe")
     nuevo = data.get("estado")
     act = s[5]
-    ok = False
-    if act == "PEND" and (nuevo == "ASIG" or nuevo == "CANC"):
-        ok = True
-    if act == "ASIG" and (nuevo == "EN_PROC" or nuevo == "CANC"):
-        ok = True
-    if act == "EN_PROC" and (nuevo == "RES" or nuevo == "RECH"):
-        ok = True
-    if not ok:
+
+    if not transicion_permitida(act, nuevo):
         return {"error": "transicion no permitida de " + act + " a " + str(nuevo)}
     if nuevo == "ASIG" and s[6] is None:
         return {"error": "no tiene responsable"}
@@ -58,7 +54,7 @@ def asignar(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(
     s = c.fetchone()
     if s is None:
         return {"error": "solicitud no existe"}
-    if s[5] in ["RES", "RECH", "CANC"]:
+    if s[5] in ESTADOS_CERRADOS:
         return {"error": "la solicitud esta cerrada"}
     c.execute("SELECT * FROM responsables WHERE id = ?", (data.get("responsable_id"),))
     r = c.fetchone()
