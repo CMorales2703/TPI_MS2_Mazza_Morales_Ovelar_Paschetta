@@ -13,7 +13,7 @@ Trabajo Práctico Integrador — Metodología de Sistemas II — Tecnicatura Uni
 | Bruno Maza | [@BrunoDMaza](https://github.com/BrunoDMaza) |
 | Cristian Morales | [@CMorales2703](https://github.com/CMorales2703) |
 | Ovelar | |
-| Paschetta | |
+| Paschetta | [@paschedev](https://github.com/paschedev) |
 
 ## Requisitos
 
