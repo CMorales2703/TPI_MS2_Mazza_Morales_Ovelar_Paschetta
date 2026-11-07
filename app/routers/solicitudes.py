@@ -7,6 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Body, Depends
 
 from app.db import get_db
+from app.dominio import REGLAS_POR_TIPO, TIPOS
 
 router = APIRouter()
 
@@ -43,11 +44,12 @@ def calcular_prioridad(tipo, descripcion):
     """Prioridad por defecto: 1 si la descripción dice "urgente"; si no, la del tipo."""
     if "urgente" in descripcion.lower():
         return 1
-    if tipo == "MESA" or tipo == "RECLAMO":
-        return 1
-    if tipo == "CERT":
-        return 3
-    return 2
+    return REGLAS_POR_TIPO[tipo]["prioridad"]
+
+
+def determinar_area(tipo):
+    """Área que atiende las solicitudes del tipo."""
+    return REGLAS_POR_TIPO[tipo]["area"]
 
 
 @router.post("/solicitudes")
@@ -60,7 +62,7 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     est = c.fetchone()
     if est is None:
         return {"error": "estudiante no existe"}
-    if "tipo" not in data or data["tipo"] not in ["CERT", "EQUIV", "MESA", "RECLAMO", "BAJA"]:
+    if "tipo" not in data or data["tipo"] not in TIPOS:
         return {"error": "tipo invalido"}
     if "descripcion" not in data or len(data["descripcion"]) < 10:
         return {"error": "descripcion muy corta"}
@@ -71,15 +73,7 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     elif p not in [1, 2, 3]:
         return {"error": "prioridad invalida"}
 
-    # area segun tipo
-    if data["tipo"] == "CERT" or data["tipo"] == "BAJA":
-        a = "Alumnado"
-    elif data["tipo"] == "EQUIV":
-        a = "Departamento Academico"
-    elif data["tipo"] == "MESA":
-        a = "Bedelia"
-    else:
-        a = "Coordinacion"
+    a = determinar_area(data["tipo"])
 
     canal = data.get("canal", "WEB")
     if canal not in ["WEB", "MAIL", "PRESENCIAL"]:
