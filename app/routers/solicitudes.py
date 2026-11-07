@@ -39,8 +39,10 @@ def guardar_solicitud(conn, solicitud):
     return c.lastrowid
 
 
-def calcular_prioridad(tipo):
-    # TODO: usar esto en registrar
+def calcular_prioridad(tipo, descripcion):
+    """Prioridad por defecto: 1 si la descripción dice "urgente"; si no, la del tipo."""
+    if "urgente" in descripcion.lower():
+        return 1
     if tipo == "MESA" or tipo == "RECLAMO":
         return 1
     if tipo == "CERT":
@@ -63,24 +65,11 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     if "descripcion" not in data or len(data["descripcion"]) < 10:
         return {"error": "descripcion muy corta"}
 
-    # prioridad
     p = data.get("prioridad")
     if p is None:
-        if data["tipo"] == "MESA":
-            p = 1
-        elif data["tipo"] == "RECLAMO":
-            p = 1
-        elif data["tipo"] == "EQUIV":
-            p = 2
-        elif data["tipo"] == "CERT":
-            p = 3
-        else:
-            p = 2
-        if "urgente" in data["descripcion"].lower():
-            p = 1
-    else:
-        if p not in [1, 2, 3]:
-            return {"error": "prioridad invalida"}
+        p = calcular_prioridad(data["tipo"], data["descripcion"])
+    elif p not in [1, 2, 3]:
+        return {"error": "prioridad invalida"}
 
     # area segun tipo
     if data["tipo"] == "CERT" or data["tipo"] == "BAJA":
