@@ -52,6 +52,22 @@ def determinar_area(tipo):
     return REGLAS_POR_TIPO[tipo]["area"]
 
 
+def registrar_alta_en_historial(conn, solicitud_id, fecha):
+    """Agrega al historial la fila del alta (sin estado anterior, pasa a PEND)."""
+    conn.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
+                 (solicitud_id, None, "PEND", fecha, "alta de solicitud"))
+    conn.commit()
+
+
+def notificar_alta(email, solicitud_id, fecha):
+    """Deja en notificaciones.log el aviso de alta al estudiante."""
+    try:
+        with open("notificaciones.log", "a") as arch:
+            arch.write(fecha + " - Se envio mail a " + email + ": su solicitud " + str(solicitud_id) + " fue registrada\n")
+    except:
+        pass
+
+
 @router.post("/solicitudes")
 def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
@@ -84,17 +100,10 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
                                prioridad=p, estado="PEND", responsable_id=None, area=a,
                                fecha_alta=f, fecha_mod=f, canal=canal, obs=data.get("obs", ""))
     id = guardar_solicitud(conn, solicitud)
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-              (id, None, "PEND", f, "alta de solicitud"))
-    conn.commit()
+    registrar_alta_en_historial(conn, id, f)
     # c.execute("UPDATE estudiantes SET carrera = 'TUP' WHERE id = ?", (data["estudiante_id"],))
     # conn.commit()
 
-    # notificar al estudiante
-    try:
-        with open("notificaciones.log", "a") as arch:
-            arch.write(f + " - Se envio mail a " + est[4] + ": su solicitud " + str(id) + " fue registrada\n")
-    except:
-        pass
+    notificar_alta(est[4], id, f)
 
     return {"id": id, **asdict(solicitud)}
