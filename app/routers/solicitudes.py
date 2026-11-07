@@ -1,6 +1,7 @@
 """Solicitudes: registro de una solicitud nueva."""
 
 import sqlite3
+from dataclasses import asdict, dataclass
 from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends
@@ -10,11 +11,30 @@ from app.db import get_db
 router = APIRouter()
 
 
-def guardar_solicitud(conn, estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs):
+@dataclass
+class NuevaSolicitud:
+    """Datos de una solicitud nueva, tal como se guardan en la tabla solicitudes."""
+
+    estudiante_id: int
+    tipo: str
+    descripcion: str
+    prioridad: int
+    estado: str
+    responsable_id: int | None
+    area: str
+    fecha_alta: str
+    fecha_mod: str
+    canal: str
+    obs: str
+
+
+def guardar_solicitud(conn, solicitud):
     c = conn.cursor()
     c.execute("""INSERT INTO solicitudes (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area,
-                 fecha_alta, fecha_mod, canal, obs) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-              (estudiante_id, tipo, descripcion, prioridad, estado, responsable_id, area, fecha_alta, fecha_mod, canal, obs))
+                 fecha_alta, fecha_mod, canal, obs)
+                 VALUES (:estudiante_id, :tipo, :descripcion, :prioridad, :estado, :responsable_id, :area,
+                         :fecha_alta, :fecha_mod, :canal, :obs)""",
+              asdict(solicitud))
     conn.commit()
     return c.lastrowid
 
@@ -77,8 +97,10 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
         canal = "WEB"
 
     f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    id = guardar_solicitud(conn, data["estudiante_id"], data["tipo"], data["descripcion"], p, "PEND", None, a, f, f,
-                           canal, data.get("obs", ""))
+    solicitud = NuevaSolicitud(estudiante_id=data["estudiante_id"], tipo=data["tipo"], descripcion=data["descripcion"],
+                               prioridad=p, estado="PEND", responsable_id=None, area=a,
+                               fecha_alta=f, fecha_mod=f, canal=canal, obs=data.get("obs", ""))
+    id = guardar_solicitud(conn, solicitud)
     c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
               (id, None, "PEND", f, "alta de solicitud"))
     conn.commit()
@@ -92,6 +114,4 @@ def registrar(data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)
     except:
         pass
 
-    return {"id": id, "estudiante_id": data["estudiante_id"], "tipo": data["tipo"], "descripcion": data["descripcion"],
-            "prioridad": p, "estado": "PEND", "responsable_id": None, "area": a, "fecha_alta": f, "fecha_mod": f,
-            "canal": canal, "obs": data.get("obs", "")}
+    return {"id": id, **asdict(solicitud)}
