@@ -1,15 +1,25 @@
-# Decisión técnica 02 — Defectos que quedan como deuda técnica
+# Decisión técnica 02 — Salida idéntica a la versión inicial y mejoras pendientes
 
 **Estado:** aceptada por el grupo al cierre de la Fase 3
 **Hallazgos:** fichas de `docs/diagnostico/` (C = Cristian, G = Gaston, J = Javier, B = Bruno) y la sección "Hallazgos que quedan fuera" de cada documento de `docs/refactoring/`
 
 ## Decisión
 
-Los defectos comprobados en el diagnóstico **no se corrigen en este trabajo**: quedan registrados como deuda técnica para una etapa posterior.
+Como criterio de verificación, el grupo decidió que **la versión final responda exactamente igual que la versión inicial** (`estado-inicial`). Los defectos que solo se corrigen cambiando la salida del sistema quedan registrados como **mejoras pendientes**.
 
-La Fase 3 se limitó a refactorings, es decir, a cambios que no alteran el comportamiento. Corregir estos defectos cambia lo que responde el sistema (códigos HTTP, datos que se aceptan o se rechazan), así que obliga a modificar asserts de los tests de línea de base. Mezclarlo con el refactoring impediría demostrar que el refactoring fue seguro.
+La consigna admite que el comportamiento externo "se mantenga o mejore". Elegimos mantenerlo por tres razones:
 
-Los tests de la Fase 2 ya documentan cada defecto: los que verifican el comportamiento actual llevan un comentario `Actual: ... Esperado: ...` o el prefijo `DEFECTO` en el nombre. Cuando se corrija un defecto, esos tests se actualizan en el mismo commit, y el cambio queda trazable.
+- **La verificación es objetiva.** Los tests de la Fase 2 fijan la salida de la versión inicial; si pasan sin modificar ningún assert, queda demostrado que los refactorings no alteraron el comportamiento.
+- **Refactoring y corrección no se mezclan.** Un cambio en la respuesta (por ejemplo, de 200 a 422) obligaría a modificar asserts, y en ese commit ya no se podría distinguir un cambio buscado de una regresión.
+- **Los defectos quedan documentados y no ocultos.** Cada uno tiene su test, con un comentario `Actual: ... Esperado: ...` o el prefijo `DEFECTO` en el nombre: es el punto de partida para corregirlo.
+
+| Se aplicó (no cambia la salida) | Queda pendiente (cambia la salida) |
+|---|---|
+| Refactorings de estructura, nombres, responsabilidades y acoplamiento | Cambiar códigos HTTP y mensajes de error |
+| Mejoras de manejo de errores que no cambian la respuesta: validación separada (`validar_estudiante`), notificación e historial extraídos | Rechazar datos que hoy se aceptan o que hoy dan 500 |
+| Tests nuevos que fijan comportamiento no cubierto (vencidas, prioridades) | Restricciones nuevas en la base de datos |
+
+Cuando se corrija un defecto, va en un commit `fix:` aparte, que actualiza sus tests y cita el hallazgo.
 
 ## Deuda registrada
 
@@ -32,10 +42,8 @@ Ordenada por prioridad, con el criterio del grupo: **Alta** = defecto comprobado
 1. **Recurso del body que no existe:** Gaston usa **422** (estudiante inexistente) y Javier **404** (responsable inexistente). Hay que elegir uno para el punto 4.
 2. **Body que no es un objeto** (`[1, 2]`): Cristian y Gaston lo evaluaron como correcto y Javier como parcial. Los tres coinciden en que el problema es el formato `detail`, distinto del `error` del resto.
 
-## Orden sugerido para la etapa posterior
+## Orden sugerido para corregirlos
 
 1. **Inyección SQL (punto 1):** es un riesgo de seguridad y se resuelve sin depender de nada más.
 2. **Criterios y códigos HTTP (punto 4)**, junto con los **modelos de entrada (punto 2)**: resuelven la mayor cantidad de hallazgos y eliminan los 500.
 3. El resto, por área.
-
-Cada corrección va en un commit `fix:` aparte, que actualiza los tests afectados y cita el hallazgo.
