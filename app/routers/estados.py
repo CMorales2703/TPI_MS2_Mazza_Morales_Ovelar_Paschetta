@@ -30,29 +30,29 @@ def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depe
     c = conn.cursor()
     c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
-    s = c.fetchone()
-    if s is None:
+    solicitud = c.fetchone()
+    if solicitud is None:
         raise HTTPException(status_code=404, detail="no existe")
     nuevo = data.get("estado")
-    act = s["estado"]
+    estado_actual = solicitud["estado"]
 
-    if not transicion_permitida(act, nuevo):
-        return {"error": "transicion no permitida de " + act + " a " + str(nuevo)}
-    if nuevo == "ASIG" and s["responsable_id"] is None:
+    if not transicion_permitida(estado_actual, nuevo):
+        return {"error": "transicion no permitida de " + estado_actual + " a " + str(nuevo)}
+    if nuevo == "ASIG" and solicitud["responsable_id"] is None:
         return {"error": "no tiene responsable"}
     if nuevo == "RECH" and ("comentario" not in data or data["comentario"] == ""):
         return {"error": "para rechazar hay que poner motivo"}
 
-    f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("UPDATE solicitudes SET estado = ?, fecha_mod = ? WHERE id = ?", (nuevo, f, id))
-    registrar_en_historial(conn, id, act, nuevo, f, data.get("comentario", ""))
+    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("UPDATE solicitudes SET estado = ?, fecha_mod = ? WHERE id = ?", (nuevo, fecha, id))
+    registrar_en_historial(conn, id, estado_actual, nuevo, fecha, data.get("comentario", ""))
     conn.commit()
 
-    c.execute("SELECT * FROM estudiantes WHERE id = ?", (s["estudiante_id"],))
-    est = c.fetchone()
-    notificar_cambio_estado(est, id, nuevo, f)
+    c.execute("SELECT * FROM estudiantes WHERE id = ?", (solicitud["estudiante_id"],))
+    estudiante = c.fetchone()
+    notificar_cambio_estado(estudiante, id, nuevo, fecha)
 
-    return {"id": id, "estado": nuevo, "estado_anterior": act}
+    return {"id": id, "estado": nuevo, "estado_anterior": estado_actual}
 
 
 @router.put("/solicitudes/{id}/responsable")
@@ -60,28 +60,28 @@ def asignar(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(
     c = conn.cursor()
     c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
-    s = c.fetchone()
-    if s is None:
+    solicitud = c.fetchone()
+    if solicitud is None:
         return {"error": "solicitud no existe"}
-    if s["estado"] in ESTADOS_CERRADOS:
+    if solicitud["estado"] in ESTADOS_CERRADOS:
         return {"error": "la solicitud esta cerrada"}
     c.execute("SELECT * FROM responsables WHERE id = ?", (data.get("responsable_id"),))
-    r = c.fetchone()
-    if r is None:
+    responsable = c.fetchone()
+    if responsable is None:
         return {"error": "responsable no existe"}
-    if r["activo"] == 0:
+    if responsable["activo"] == 0:
         return {"error": "responsable inactivo"}
-    if r["area"] != s["area"]:
-        return {"error": "el responsable no pertenece al area " + s["area"]}
+    if responsable["area"] != solicitud["area"]:
+        return {"error": "el responsable no pertenece al area " + solicitud["area"]}
 
-    f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    nuevo_estado = s["estado"]
-    if s["estado"] == "PEND":
+    fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    nuevo_estado = solicitud["estado"]
+    if solicitud["estado"] == "PEND":
         nuevo_estado = "ASIG"
     c.execute("UPDATE solicitudes SET responsable_id = ?, estado = ?, fecha_mod = ? WHERE id = ?",
-              (r["id"], nuevo_estado, f, id))
+              (responsable["id"], nuevo_estado, fecha, id))
 
-    if nuevo_estado != s["estado"]:
-        registrar_en_historial(conn, id, s["estado"], nuevo_estado, f, "asignada a " + r["nombre"])
+    if nuevo_estado != solicitud["estado"]:
+        registrar_en_historial(conn, id, solicitud["estado"], nuevo_estado, fecha, "asignada a " + responsable["nombre"])
     conn.commit()
-    return {"id": id, "responsable_id": r["id"], "responsable": r["nombre"], "estado": nuevo_estado}
+    return {"id": id, "responsable_id": responsable["id"], "responsable": responsable["nombre"], "estado": nuevo_estado}
