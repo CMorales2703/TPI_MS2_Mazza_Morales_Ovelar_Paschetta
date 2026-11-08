@@ -26,7 +26,7 @@ def notificar_cambio_estado(estudiante, solicitud_id, estado, fecha):
         pass
 
 @router.put("/solicitudes/{id}/estado")
-def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
+def cambiar_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
     c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
@@ -56,7 +56,7 @@ def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depe
 
 
 @router.put("/solicitudes/{id}/responsable")
-def asignar(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
+def asignar_responsable(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
     c = conn.cursor()
     c.row_factory = sqlite3.Row
     c.execute("SELECT * FROM solicitudes WHERE id = ?", (id,))
