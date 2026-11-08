@@ -11,6 +11,19 @@ from app.dominio import ESTADOS_CERRADOS, transicion_permitida
 
 router = APIRouter()
 
+def registrar_en_historial(conn, solicitud_id, estado_ant, estado_nuevo, fecha, comentario):
+    """Agrega al historial el paso de la solicitud de un estado a otro."""
+    conn.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
+                 (solicitud_id, estado_ant, estado_nuevo, fecha, comentario))
+
+
+def notificar_cambio_estado(estudiante, solicitud_id, estado, fecha):
+    """Deja en notificaciones.log el aviso al estudiante del cambio de estado."""
+    try:
+        with open("notificaciones.log", "a") as arch:
+            arch.write(fecha + " - Se envio mail a " + estudiante["email"] + ": su solicitud " + str(solicitud_id) + " paso a " + estado + "\n")
+    except:
+        pass
 
 @router.put("/solicitudes/{id}/estado")
 def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(get_db)):
@@ -32,18 +45,12 @@ def proc_estado(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depe
 
     f = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     c.execute("UPDATE solicitudes SET estado = ?, fecha_mod = ? WHERE id = ?", (nuevo, f, id))
-    c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-              (id, act, nuevo, f, data.get("comentario", "")))
+    registrar_en_historial(conn, id, act, nuevo, f, data.get("comentario", ""))
     conn.commit()
 
-    # notificar al estudiante
     c.execute("SELECT * FROM estudiantes WHERE id = ?", (s["estudiante_id"],))
     est = c.fetchone()
-    try:
-        with open("notificaciones.log", "a") as arch:
-            arch.write(f + " - Se envio mail a " + est["email"] + ": su solicitud " + str(id) + " paso a " + nuevo + "\n")
-    except:
-        pass
+    notificar_cambio_estado(est, id, nuevo, f)
 
     return {"id": id, "estado": nuevo, "estado_anterior": act}
 
@@ -73,8 +80,8 @@ def asignar(id: int, data: dict = Body(...), conn: sqlite3.Connection = Depends(
         nuevo_estado = "ASIG"
     c.execute("UPDATE solicitudes SET responsable_id = ?, estado = ?, fecha_mod = ? WHERE id = ?",
               (r["id"], nuevo_estado, f, id))
+
     if nuevo_estado != s["estado"]:
-        c.execute("INSERT INTO historial (solicitud_id, estado_ant, estado_nuevo, fecha, comentario) VALUES (?,?,?,?,?)",
-                  (id, s["estado"], nuevo_estado, f, "asignada a " + r["nombre"]))
+        registrar_en_historial(conn, id, s["estado"], nuevo_estado, f, "asignada a " + r["nombre"])
     conn.commit()
     return {"id": id, "responsable_id": r["id"], "responsable": r["nombre"], "estado": nuevo_estado}
