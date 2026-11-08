@@ -1,7 +1,5 @@
 # Declaración de uso de IA — Cristian Morales
 
-> Antes de entregar: reemplazar **[otra IA]** por el nombre de la herramienta usada para el análisis inicial y confirmar si las decisiones de la preparación fueron del grupo o propias.
-
 ## Registro
 
 | Integrante | Herramienta | Para qué la usó | Grado de intervención | Evidencia |

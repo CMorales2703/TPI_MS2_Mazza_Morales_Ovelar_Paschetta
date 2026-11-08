@@ -8,12 +8,12 @@ Trabajo Práctico Integrador — Metodología de Sistemas II — Tecnicatura Uni
 
 ## Integrantes
 
-| Integrante | Usuario de GitHub |
-|---|---|
-| Bruno Maza | [@BrunoDMaza](https://github.com/BrunoDMaza) |
-| Cristian Morales | [@CMorales2703](https://github.com/CMorales2703) |
-| Ovelar | |
-| Paschetta | [@paschedev](https://github.com/paschedev) |
+| Integrante | Usuario de GitHub | Parte del código | Coordinación |
+|---|---|---|---|
+| Bruno Maza | [@BrunoDMaza](https://github.com/BrunoDMaza) | Búsqueda, detalle y reporte | Tests |
+| Cristian Ariel Morales | [@CMorales2703](https://github.com/CMorales2703) | Conexión, tablas, estudiantes y responsables | Cambios transversales, informe, tags y video |
+| Isaias Javier Ovelar | [@jovelar](https://github.com/jovelar) | Cambio de estado y asignación | Code review y `docs/` |
+| Gastón Paschetta | [@paschedev](https://github.com/paschedev) | Registro de solicitudes | Tabla de code smells |
 
 ## Requisitos
 
@@ -91,13 +91,32 @@ uvicorn main:app --reload
 
 Abrir http://127.0.0.1:8000/docs para probar los endpoints.
 
-La base `solicitudes.db` se crea sola con datos de prueba la primera vez. Para volver al estado inicial, borrar `solicitudes.db` y `notificaciones.log` y reiniciar.
+La base `solicitudes.db` se crea sola con datos de prueba la primera vez que arranca el sistema. Para volver al estado inicial, borrar `solicitudes.db` y `notificaciones.log` y reiniciar.
 
 ## Tests
 
 ```bash
 pytest
 ```
+
+## Estructura del proyecto
+
+```
+main.py                  crea la aplicación (crear_app) y registra los routers
+app/
+  db.py                  conexión, creación de tablas y dependencia get_db
+  seed.py                datos de prueba
+  dominio.py             áreas, reglas por tipo, transiciones y estados cerrados
+  validaciones.py        validaciones compartidas
+  routers/               un módulo por área: estudiantes, responsables,
+                         solicitudes, estados, consultas
+tests/                   suite de tests (conftest.py común y un archivo por área)
+docs/                    diagnóstico, pruebas, refactoring, decisiones, checklist,
+                         evidencias y uso de IA
+anexo/ia/                conversaciones y registros de uso de IA
+```
+
+La versión inicial, con todo el código en un único `main.py`, está en el tag `estado-inicial`.
 
 ## Funcionalidades
 
@@ -154,7 +173,7 @@ Tipos válidos: `CERT`, `EQUIV`, `MESA`, `RECLAMO`, `BAJA`.
 
 Al cerrar cada etapa se integra `dev` en `main` con un PR (merge commit) y el tag de la etapa se crea sobre `main`. El tag `estadorefactorizado` marca la versión final.
 
-El checklist de code review, las decisiones técnicas y las evidencias están en la carpeta [`docs/`](docs/).
+El checklist de code review está en [`docs/checklist_code_review.md`](docs/checklist_code_review.md); las decisiones técnicas, en [`docs/decisiones/`](docs/decisiones/); y las evidencias, en [`docs/evidencias/`](docs/evidencias/).
 
 ## Tecnologías
 
