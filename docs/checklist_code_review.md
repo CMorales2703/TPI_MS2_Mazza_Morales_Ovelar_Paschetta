@@ -24,8 +24,8 @@
 
 | PR | Autor | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | Resultado |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| #13 transversales | Cristian | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | — | ✓ | ✓ | ✓ | Aprobado con observación |
-| #17 consultas | Bruno | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | Aprobado; la declaración de IA de la fase se completó en #21 |
+| #13 transversales | Cristian | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | Aprobado |
+| #17 consultas | Bruno | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #18 estudiantes y responsables | Cristian | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #19 solicitudes | Gaston | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #22 estados | Javier | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
