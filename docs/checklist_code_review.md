@@ -24,8 +24,8 @@
 
 | PR | Autor | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | Resultado |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| #13 transversales | Cristian | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | — | ✓ | ✓ | ✓ | Aprobado con observación |
-| #17 consultas | Bruno | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | Aprobado; la declaración de IA de la fase se completó en #21 |
+| #13 transversales | Cristian | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | Aprobado |
+| #17 consultas | Bruno | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #18 estudiantes y responsables | Cristian | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #19 solicitudes | Gaston | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
 | #22 estados | Javier | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Aprobado |
@@ -43,3 +43,7 @@
 | #15 (README) | El README decía que los tags de etapa iban en `dev`, pero el grupo los pone en `main` | 8 | La documentación tiene que reflejar lo que se hace | Corregido |
 | #8 / #21 (Bruno) | La declaración de IA del diagnóstico citaba un PDF que no estaba en el repositorio | 9 | Toda evidencia citada tiene que existir | Reemplazado por `anexo/ia/bruno_registro_ia.md` (#21) |
 | #19 y #22 | Revisados contra `dev`: sin conflictos, suite en verde, ningún assert modificado | 1, 2 | — | Aprobados |
+
+## Confirmación
+
+**Javier Ovelar (coordinador del code review):** revisamos en conjunto los PRs y el checklist técnico, y confirmamos que los cambios se ejecutaron siguiendo los criterios establecidos. Se verificó que la suite pasara, que los refactorings conservaran el comportamiento original y que los cambios quedaran documentados y revisados mediante aprobación cruzada.
